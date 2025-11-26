@@ -1,0 +1,50 @@
+export interface Assessment {
+  id: string
+  candidateEmail: string
+  candidateName: string
+  createdAt: string
+  status: "pending" | "in_progress" | "completed"
+  sessionLink: string
+}
+
+const STORAGE_KEY = "codestage-assessments"
+
+export function getAssessments(): Assessment[] {
+  const stored = localStorage.getItem(STORAGE_KEY)
+  if (!stored) return []
+  return JSON.parse(stored)
+}
+
+export function addAssessment(
+  assessment: Omit<Assessment, "id" | "createdAt" | "status" | "sessionLink">
+): Assessment {
+  const assessments = getAssessments()
+
+  const newAssessment: Assessment = {
+    ...assessment,
+    id: crypto.randomUUID(),
+    createdAt: new Date().toISOString(),
+    status: "pending",
+    sessionLink: `${window.location.origin}/workspace?session=${crypto.randomUUID().slice(0, 8)}`,
+  }
+
+  assessments.unshift(newAssessment)
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(assessments))
+
+  return newAssessment
+}
+
+export function updateAssessmentStatus(
+  id: string,
+  status: Assessment["status"]
+): void {
+  const assessments = getAssessments()
+  const updated = assessments.map((a) => (a.id === id ? { ...a, status } : a))
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(updated))
+}
+
+export function deleteAssessment(id: string): void {
+  const assessments = getAssessments()
+  const filtered = assessments.filter((a) => a.id !== id)
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(filtered))
+}

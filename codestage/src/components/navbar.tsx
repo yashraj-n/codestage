@@ -37,9 +37,9 @@ export function Navbar() {
 
         <div className="hidden items-center gap-4 md:flex">
           <ModeToggle />
-          <Link href="/invite" to="/invite" className="block">
+          <Link href="/admin" to="/admin" className="block">
             <Button size="sm" className="bg-foreground text-background hover:bg-foreground/90">
-              Get Started
+              Admin Portal
             </Button>
           </Link>
         </div>
@@ -73,9 +73,9 @@ export function Navbar() {
               Pricing
             </Link>
             <div className="pt-2">
-              <Link href="/invite" to="/invite" className="block">
+              <Link href="/admin" to="/admin" className="block">
                 <Button size="sm" className="w-full bg-foreground text-background">
-                  Get Started
+                  Admin Portal
                 </Button>
               </Link>
             </div>
