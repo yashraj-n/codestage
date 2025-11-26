@@ -1,3 +1,11 @@
+export interface AssessmentSubmission {
+  code: string
+  language: string
+  terminalOutput: string[]
+  notes: string
+  submittedAt: string
+}
+
 export interface Assessment {
   id: string
   candidateEmail: string
@@ -5,6 +13,7 @@ export interface Assessment {
   createdAt: string
   status: "pending" | "in_progress" | "completed"
   sessionLink: string
+  submission?: AssessmentSubmission
 }
 
 const STORAGE_KEY = "codestage-assessments"
@@ -13,6 +22,11 @@ export function getAssessments(): Assessment[] {
   const stored = localStorage.getItem(STORAGE_KEY)
   if (!stored) return []
   return JSON.parse(stored)
+}
+
+export function getAssessmentById(id: string): Assessment | undefined {
+  const assessments = getAssessments()
+  return assessments.find((a) => a.id === id)
 }
 
 export function addAssessment(
@@ -40,6 +54,23 @@ export function updateAssessmentStatus(
 ): void {
   const assessments = getAssessments()
   const updated = assessments.map((a) => (a.id === id ? { ...a, status } : a))
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(updated))
+}
+
+export function completeAssessment(
+  id: string,
+  submission: Omit<AssessmentSubmission, "submittedAt">
+): void {
+  const assessments = getAssessments()
+  const updated = assessments.map((a) =>
+    a.id === id
+      ? {
+          ...a,
+          status: "completed" as const,
+          submission: { ...submission, submittedAt: new Date().toISOString() },
+        }
+      : a
+  )
   localStorage.setItem(STORAGE_KEY, JSON.stringify(updated))
 }
 

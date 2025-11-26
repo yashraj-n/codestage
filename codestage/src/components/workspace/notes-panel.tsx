@@ -11,38 +11,40 @@ interface NotesPanelProps {
 
 export function NotesPanel({ value, onChange, isAdmin }: NotesPanelProps) {
   return (
-    <div className="flex h-full flex-col overflow-hidden rounded-xl border border-white/10 bg-white/5 backdrop-blur-sm">
-      {/* Panel header */}
-      <div className="flex items-center justify-between border-b border-white/10 bg-white/5 px-4 py-3">
+    <div className="flex h-full flex-col overflow-hidden rounded-2xl border border-white/[0.08] bg-gradient-to-b from-[#13131a] to-[#0d0d14]">
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-amber-500/40 to-transparent" />
+
+      <div className="flex items-center justify-between border-b border-white/6 bg-white/[0.02] px-4 py-3">
         <div className="flex items-center gap-2">
-          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-amber-500/20 to-orange-500/20">
+          <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-amber-500/20 to-orange-500/20 ring-1 ring-white/10">
             <FileText className="h-4 w-4 text-amber-400" />
           </div>
-          <span className="font-medium text-white">Notes</span>
+          <span className="font-medium text-white/90">Notes</span>
         </div>
         {isAdmin && (
-          <Badge variant="outline" className="gap-1 border-white/10 bg-white/5 text-white/50">
+          <Badge
+            variant="outline"
+            className="gap-1 border-white/[0.08] bg-white/[0.03] text-white/50"
+          >
             <Lock className="h-3 w-3" />
             Private
           </Badge>
         )}
       </div>
 
-      {/* Notes content */}
-      <div className="relative flex-1 overflow-auto">
+      <div className="relative flex-1 overflow-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-white/10">
         <textarea
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder="Add interview notes..."
-          className="h-full w-full resize-none bg-transparent p-4 font-mono text-sm leading-relaxed text-white/80 placeholder:text-white/30 focus:outline-none"
+          className="h-full w-full resize-none bg-transparent p-4 font-mono text-sm leading-relaxed text-white/80 placeholder:text-white/25 focus:outline-none"
           readOnly={!isAdmin}
         />
 
-        {/* AI suggestion hint */}
         {isAdmin && (
           <div className="absolute bottom-3 left-3 right-3">
-            <div className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs text-white/40">
-              <Sparkles className="h-3 w-3" />
+            <div className="flex items-center gap-2 rounded-xl border border-white/[0.06] bg-gradient-to-r from-violet-500/5 to-purple-500/5 px-3 py-2.5 text-xs text-white/40 backdrop-blur-sm">
+              <Sparkles className="h-3.5 w-3.5 text-violet-400" />
               <span>Press Cmd+K for AI suggestions</span>
             </div>
           </div>

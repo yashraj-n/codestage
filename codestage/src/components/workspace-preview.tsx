@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { FileText, Code2, Terminal, Play, RotateCcw, Copy } from "lucide-react"
+import { FileText, Code2, Terminal, Play, RotateCcw, Copy, ArrowRight } from "lucide-react"
 
 export function WorkspacePreview() {
   const [view, setView] = useState<"admin" | "participant">("admin")
@@ -162,10 +162,10 @@ export function WorkspacePreview() {
 
         {/* CTA below preview */}
         <div className="mt-12 flex justify-center">
-          <Button size="lg" className="group h-12 bg-foreground px-8 text-background hover:bg-foreground/90" asChild>
-            <a href="/workspace">
-              Try the Full Workspace
-              <Play className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+          <Button size="lg" className="group h-12 bg-foreground px-8 text-background hover:bg-foreground/90 " asChild>
+            <a href="/admin">
+             Get Started
+              <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
             </a>
           </Button>
         </div>

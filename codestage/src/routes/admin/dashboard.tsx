@@ -45,6 +45,8 @@ import {
   Clock,
   Users,
   Loader2,
+  Eye,
+  Mail,
 } from "lucide-react"
 
 export const Route = createFileRoute("/admin/dashboard")({
@@ -209,11 +211,19 @@ function AdminDashboard() {
                       Assessment Created
                     </DialogTitle>
                     <DialogDescription>
-                      Share this link with {createdAssessment.candidateName} to
-                      start the assessment.
+                      The assessment link has been created successfully.
                     </DialogDescription>
                   </DialogHeader>
                   <div className="space-y-4 py-4">
+                    <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/5 p-3">
+                      <div className="flex items-center gap-2 text-sm text-emerald-600 dark:text-emerald-400">
+                        <Mail className="h-4 w-4" />
+                        <span>
+                          Email sent to{" "}
+                          <strong>{createdAssessment.candidateEmail}</strong>
+                        </span>
+                      </div>
+                    </div>
                     <div className="rounded-lg border border-border/50 bg-muted/30 p-3">
                       <p className="mb-1 text-xs text-muted-foreground">
                         Session Link
@@ -388,50 +398,66 @@ function AdminDashboard() {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-1">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={() =>
-                              handleCopyLink(
-                                assessment.id,
-                                assessment.sessionLink
-                              )
-                            }
-                            title="Copy link"
-                          >
-                            {copiedId === assessment.id ? (
-                              <Check className="h-4 w-4 text-emerald-500" />
-                            ) : (
-                              <Copy className="h-4 w-4" />
-                            )}
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                            asChild
-                            title="Open session"
-                          >
-                            <a
-                              href={assessment.sessionLink}
-                              target="_blank"
-                              rel="noopener noreferrer"
+                          {assessment.status === "completed" ? (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              asChild
+                              title="View submission"
                             >
-                              <ExternalLink className="h-4 w-4" />
-                            </a>
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-destructive hover:text-destructive"
-                            onClick={() =>
-                              handleDeleteAssessment(assessment.id)
-                            }
-                            title="Delete"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                              <Link to={`/admin/assessment/${assessment.id}`}>
+                                <Eye className="h-4 w-4" />
+                              </Link>
+                            </Button>
+                          ) : (
+                            <>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8"
+                                onClick={() =>
+                                  handleCopyLink(
+                                    assessment.id,
+                                    assessment.sessionLink
+                                  )
+                                }
+                                title="Copy link"
+                              >
+                                {copiedId === assessment.id ? (
+                                  <Check className="h-4 w-4 text-emerald-500" />
+                                ) : (
+                                  <Copy className="h-4 w-4" />
+                                )}
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8"
+                                asChild
+                                title="Open session"
+                              >
+                                <a
+                                  href={assessment.sessionLink}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                >
+                                  <ExternalLink className="h-4 w-4" />
+                                </a>
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-destructive hover:text-destructive"
+                                onClick={() =>
+                                  handleDeleteAssessment(assessment.id)
+                                }
+                                title="Delete"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </>
+                          )}
                         </div>
                       </TableCell>
                     </TableRow>

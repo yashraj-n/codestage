@@ -101,9 +101,7 @@ function AdminLoginPage() {
 
             <div className="mt-6 text-center">
               <p className="text-xs text-muted-foreground">
-                Only authorized administrators can access this portal.
-                <br />
-                Contact your organization admin for access.
+               By Signing in, you agree to our <Link to="/terms" className="text-muted-foreground hover:text-foreground">Terms of Service</Link> and <Link to="/privacy" className="text-muted-foreground hover:text-foreground">Privacy Policy</Link>.
               </p>
             </div>
           </div>
