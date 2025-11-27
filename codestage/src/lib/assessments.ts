@@ -1,99 +1,99 @@
 export type AssessmentEventType =
-  | "tab_switch"
-  | "paste"
-  | "copy"
-  | "focus_lost"
-  | "focus_gained"
-  | "session_start"
-  | "session_end"
-  | "code_run"
+	| "tab_switch"
+	| "paste"
+	| "copy"
+	| "focus_lost"
+	| "focus_gained"
+	| "session_start"
+	| "session_end"
+	| "code_run";
 
 export interface AssessmentEvent {
-  id: string
-  type: AssessmentEventType
-  timestamp: string
-  details?: string
+	id: string;
+	type: AssessmentEventType;
+	timestamp: string;
+	details?: string;
 }
 
 export interface AssessmentSubmission {
-  code: string
-  language: string
-  terminalOutput: string[]
-  notes: string
-  submittedAt: string
-  events?: AssessmentEvent[]
+	code: string;
+	language: string;
+	terminalOutput: string[];
+	notes: string;
+	submittedAt: string;
+	events?: AssessmentEvent[];
 }
 
 export interface Assessment {
-  id: string
-  candidateEmail: string
-  candidateName: string
-  createdAt: string
-  status: "pending" | "in_progress" | "completed"
-  sessionLink: string
-  submission?: AssessmentSubmission
+	id: string;
+	candidateEmail: string;
+	candidateName: string;
+	createdAt: string;
+	status: "pending" | "in_progress" | "completed";
+	sessionLink: string;
+	submission?: AssessmentSubmission;
 }
 
-const STORAGE_KEY = "codestage-assessments"
+const STORAGE_KEY = "codestage-assessments";
 
 export function getAssessments(): Assessment[] {
-  const stored = localStorage.getItem(STORAGE_KEY)
-  if (!stored) return []
-  return JSON.parse(stored)
+	const stored = localStorage.getItem(STORAGE_KEY);
+	if (!stored) return [];
+	return JSON.parse(stored);
 }
 
 export function getAssessmentById(id: string): Assessment | undefined {
-  const assessments = getAssessments()
-  return assessments.find((a) => a.id === id)
+	const assessments = getAssessments();
+	return assessments.find((a) => a.id === id);
 }
 
 export function addAssessment(
-  assessment: Omit<Assessment, "id" | "createdAt" | "status" | "sessionLink">
+	assessment: Omit<Assessment, "id" | "createdAt" | "status" | "sessionLink">,
 ): Assessment {
-  const assessments = getAssessments()
+	const assessments = getAssessments();
 
-  const newAssessment: Assessment = {
-    ...assessment,
-    id: crypto.randomUUID(),
-    createdAt: new Date().toISOString(),
-    status: "pending",
-    sessionLink: `${window.location.origin}/workspace?session=${crypto.randomUUID().slice(0, 8)}`,
-  }
+	const newAssessment: Assessment = {
+		...assessment,
+		id: crypto.randomUUID(),
+		createdAt: new Date().toISOString(),
+		status: "pending",
+		sessionLink: `${window.location.origin}/workspace?session=${crypto.randomUUID().slice(0, 8)}`,
+	};
 
-  assessments.unshift(newAssessment)
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(assessments))
+	assessments.unshift(newAssessment);
+	localStorage.setItem(STORAGE_KEY, JSON.stringify(assessments));
 
-  return newAssessment
+	return newAssessment;
 }
 
 export function updateAssessmentStatus(
-  id: string,
-  status: Assessment["status"]
+	id: string,
+	status: Assessment["status"],
 ): void {
-  const assessments = getAssessments()
-  const updated = assessments.map((a) => (a.id === id ? { ...a, status } : a))
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(updated))
+	const assessments = getAssessments();
+	const updated = assessments.map((a) => (a.id === id ? { ...a, status } : a));
+	localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
 }
 
 export function completeAssessment(
-  id: string,
-  submission: Omit<AssessmentSubmission, "submittedAt">
+	id: string,
+	submission: Omit<AssessmentSubmission, "submittedAt">,
 ): void {
-  const assessments = getAssessments()
-  const updated = assessments.map((a) =>
-    a.id === id
-      ? {
-          ...a,
-          status: "completed" as const,
-          submission: { ...submission, submittedAt: new Date().toISOString() },
-        }
-      : a
-  )
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(updated))
+	const assessments = getAssessments();
+	const updated = assessments.map((a) =>
+		a.id === id
+			? {
+					...a,
+					status: "completed" as const,
+					submission: { ...submission, submittedAt: new Date().toISOString() },
+				}
+			: a,
+	);
+	localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
 }
 
 export function deleteAssessment(id: string): void {
-  const assessments = getAssessments()
-  const filtered = assessments.filter((a) => a.id !== id)
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(filtered))
+	const assessments = getAssessments();
+	const filtered = assessments.filter((a) => a.id !== id);
+	localStorage.setItem(STORAGE_KEY, JSON.stringify(filtered));
 }
