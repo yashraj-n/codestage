@@ -1,9 +1,27 @@
+export type AssessmentEventType =
+  | "tab_switch"
+  | "paste"
+  | "copy"
+  | "focus_lost"
+  | "focus_gained"
+  | "session_start"
+  | "session_end"
+  | "code_run"
+
+export interface AssessmentEvent {
+  id: string
+  type: AssessmentEventType
+  timestamp: string
+  details?: string
+}
+
 export interface AssessmentSubmission {
   code: string
   language: string
   terminalOutput: string[]
   notes: string
   submittedAt: string
+  events?: AssessmentEvent[]
 }
 
 export interface Assessment {

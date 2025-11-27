@@ -1,9 +1,15 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router"
 import { useAuthStore } from "@/stores/auth-store"
-import { getAssessmentById, type Assessment } from "@/lib/assessments"
+import {
+  getAssessmentById,
+  type Assessment,
+  type AssessmentEvent,
+  type AssessmentEventType,
+} from "@/lib/assessments"
 import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { ScrollArea } from "@/components/ui/scroll-area"
 import {
   Code2,
   ArrowLeft,
@@ -15,6 +21,14 @@ import {
   Terminal,
   CheckCircle2,
   Loader2,
+  Activity,
+  Eye,
+  EyeOff,
+  Clipboard,
+  Copy,
+  Play,
+  LogIn,
+  LogOut,
 } from "lucide-react"
 import Editor from "@monaco-editor/react"
 import { setupEditorTheme, languageConfig } from "@/lib/editor-languages"
@@ -56,6 +70,56 @@ function AssessmentViewPage() {
     })
   }
 
+  const formatEventTime = (dateString: string) => {
+    return new Date(dateString).toLocaleTimeString("en-US", {
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+    })
+  }
+
+  const getEventIcon = (type: AssessmentEventType) => {
+    const icons: Record<AssessmentEventType, React.ReactNode> = {
+      tab_switch: <EyeOff className="h-3.5 w-3.5" />,
+      paste: <Clipboard className="h-3.5 w-3.5" />,
+      copy: <Copy className="h-3.5 w-3.5" />,
+      focus_lost: <EyeOff className="h-3.5 w-3.5" />,
+      focus_gained: <Eye className="h-3.5 w-3.5" />,
+      session_start: <LogIn className="h-3.5 w-3.5" />,
+      session_end: <LogOut className="h-3.5 w-3.5" />,
+      code_run: <Play className="h-3.5 w-3.5" />,
+    }
+    return icons[type]
+  }
+
+  const getEventStyle = (type: AssessmentEventType) => {
+    const styles: Record<AssessmentEventType, { bg: string; text: string; border: string }> = {
+      tab_switch: { bg: "bg-red-500/10", text: "text-red-400", border: "border-red-500/20" },
+      paste: { bg: "bg-amber-500/10", text: "text-amber-400", border: "border-amber-500/20" },
+      copy: { bg: "bg-orange-500/10", text: "text-orange-400", border: "border-orange-500/20" },
+      focus_lost: { bg: "bg-red-500/10", text: "text-red-400", border: "border-red-500/20" },
+      focus_gained: { bg: "bg-emerald-500/10", text: "text-emerald-400", border: "border-emerald-500/20" },
+      session_start: { bg: "bg-cyan-500/10", text: "text-cyan-400", border: "border-cyan-500/20" },
+      session_end: { bg: "bg-violet-500/10", text: "text-violet-400", border: "border-violet-500/20" },
+      code_run: { bg: "bg-blue-500/10", text: "text-blue-400", border: "border-blue-500/20" },
+    }
+    return styles[type]
+  }
+
+  const getEventLabel = (type: AssessmentEventType) => {
+    const labels: Record<AssessmentEventType, string> = {
+      tab_switch: "Tab Switched",
+      paste: "Content Pasted",
+      copy: "Content Copied",
+      focus_lost: "Window Focus Lost",
+      focus_gained: "Window Focus Gained",
+      session_start: "Session Started",
+      session_end: "Session Ended",
+      code_run: "Code Executed",
+    }
+    return labels[type]
+  }
+
   if (isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#09090d]">
@@ -90,6 +154,20 @@ function AssessmentViewPage() {
     submission && languageConfig[submission.language]
       ? languageConfig[submission.language].id
       : "javascript"
+
+  // Sample events for demonstration (would come from submission.events in real usage)
+  const sampleEvents: AssessmentEvent[] = submission?.events ?? [
+    { id: "1", type: "session_start", timestamp: assessment.createdAt },
+    { id: "2", type: "paste", timestamp: new Date(Date.now() - 3600000).toISOString(), details: "Pasted 45 characters" },
+    { id: "3", type: "tab_switch", timestamp: new Date(Date.now() - 3000000).toISOString(), details: "Away for 12 seconds" },
+    { id: "4", type: "focus_gained", timestamp: new Date(Date.now() - 2988000).toISOString() },
+    { id: "5", type: "code_run", timestamp: new Date(Date.now() - 1800000).toISOString() },
+    { id: "6", type: "copy", timestamp: new Date(Date.now() - 900000).toISOString(), details: "Copied 23 characters" },
+    { id: "7", type: "tab_switch", timestamp: new Date(Date.now() - 600000).toISOString(), details: "Away for 8 seconds" },
+    { id: "8", type: "focus_gained", timestamp: new Date(Date.now() - 592000).toISOString() },
+    { id: "9", type: "code_run", timestamp: new Date(Date.now() - 300000).toISOString() },
+    { id: "10", type: "session_end", timestamp: submission?.submittedAt ?? new Date().toISOString() },
+  ]
 
   return (
     <div className="min-h-screen bg-[#09090d]">
@@ -269,6 +347,59 @@ function AssessmentViewPage() {
 
             <div className="space-y-6">
               <div className="overflow-hidden rounded-2xl border border-white/[0.08] bg-[#0d0d14]">
+                <div className="flex items-center justify-between border-b border-white/[0.06] bg-white/[0.02] px-4 py-3">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-rose-500/20 to-pink-500/20 ring-1 ring-white/10">
+                      <Activity className="h-4 w-4 text-rose-400" />
+                    </div>
+                    <span className="font-medium text-white/90">
+                      Session Events
+                    </span>
+                  </div>
+                  <Badge
+                    variant="outline"
+                    className="border-white/10 bg-white/5 text-white/60"
+                  >
+                    {sampleEvents.length} events
+                  </Badge>
+                </div>
+                <ScrollArea className="h-[280px]">
+                  <div className="p-3 space-y-2">
+                    {sampleEvents.map((event) => {
+                      const style = getEventStyle(event.type)
+                      return (
+                        <div
+                          key={event.id}
+                          className={`flex items-start gap-3 rounded-xl border ${style.border} ${style.bg} p-3 transition-colors`}
+                        >
+                          <div
+                            className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${style.bg} ${style.text}`}
+                          >
+                            {getEventIcon(event.type)}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between gap-2">
+                              <span className={`text-sm font-medium ${style.text}`}>
+                                {getEventLabel(event.type)}
+                              </span>
+                              <span className="text-xs text-white/40 tabular-nums">
+                                {formatEventTime(event.timestamp)}
+                              </span>
+                            </div>
+                            {event.details && (
+                              <p className="mt-0.5 text-xs text-white/50 truncate">
+                                {event.details}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </ScrollArea>
+              </div>
+
+              <div className="overflow-hidden rounded-2xl border border-white/[0.08] bg-[#0d0d14]">
                 <div className="flex items-center gap-3 border-b border-white/[0.06] bg-white/[0.02] px-4 py-3">
                   <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-amber-500/20 to-orange-500/20 ring-1 ring-white/10">
                     <FileText className="h-4 w-4 text-amber-400" />
@@ -277,7 +408,7 @@ function AssessmentViewPage() {
                     Interview Notes
                   </span>
                 </div>
-                <div className="max-h-[500px] overflow-auto p-4">
+                <div className="max-h-[250px] overflow-auto p-4">
                   {submission.notes ? (
                     <pre className="whitespace-pre-wrap font-mono text-sm leading-relaxed text-white/70">
                       {submission.notes}
