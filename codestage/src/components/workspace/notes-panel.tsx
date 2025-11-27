@@ -1,12 +1,12 @@
-"use client"
+"use client";
 
-import { FileText, Lock, Sparkles } from "lucide-react"
-import { Badge } from "@/components/ui/badge"
+import { FileText, Lock, Sparkles } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
 interface NotesPanelProps {
-  value: string
-  onChange: (value: string) => void
-  isAdmin: boolean
+  value: string;
+  onChange: (value: string) => void;
+  isAdmin: boolean;
 }
 
 export function NotesPanel({ value, onChange, isAdmin }: NotesPanelProps) {
@@ -24,10 +24,10 @@ export function NotesPanel({ value, onChange, isAdmin }: NotesPanelProps) {
         {isAdmin && (
           <Badge
             variant="outline"
-            className="gap-1 border-white/[0.08] bg-white/[0.03] text-white/50"
+            className="gap-1 border-white/8 bg-white/[0.03] text-white/50"
           >
             <Lock className="h-3 w-3" />
-            Private
+            Visible to All, Editable by Admin
           </Badge>
         )}
       </div>
@@ -40,16 +40,7 @@ export function NotesPanel({ value, onChange, isAdmin }: NotesPanelProps) {
           className="h-full w-full resize-none bg-transparent p-4 font-mono text-sm leading-relaxed text-white/80 placeholder:text-white/25 focus:outline-none"
           readOnly={!isAdmin}
         />
-
-        {isAdmin && (
-          <div className="absolute bottom-3 left-3 right-3">
-            <div className="flex items-center gap-2 rounded-xl border border-white/[0.06] bg-gradient-to-r from-violet-500/5 to-purple-500/5 px-3 py-2.5 text-xs text-white/40 backdrop-blur-sm">
-              <Sparkles className="h-3.5 w-3.5 text-violet-400" />
-              <span>Press Cmd+K for AI suggestions</span>
-            </div>
-          </div>
-        )}
       </div>
     </div>
-  )
+  );
 }

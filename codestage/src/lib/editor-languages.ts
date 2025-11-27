@@ -1,16 +1,21 @@
 import type { editor, languages } from "monaco-editor"
 import type { Monaco } from "@monaco-editor/react"
+import type { ReactNode } from "react"
+import { DiJavascript1, DiPython, DiJava } from "react-icons/di"
+import { TbBrandCpp } from "react-icons/tb"
 
 export interface LanguageConfig {
   id: string
-  icon: string
+  icon: ReactNode
+  iconColor: string
   defaultCode: string
 }
 
 export const languageConfig: Record<string, LanguageConfig> = {
   JavaScript: {
     id: "javascript",
-    icon: "🟨",
+    icon: DiJavascript1({ className: "h-4 w-4" }),
+    iconColor: "text-yellow-400",
     defaultCode: `function solution(arr) {
   return arr.flat(Infinity);
 }
@@ -20,7 +25,8 @@ console.log(solution([1, 2, 3]));`,
   },
   Python: {
     id: "python",
-    icon: "🐍",
+    icon: DiPython({ className: "h-4 w-4" }),
+    iconColor: "text-sky-400",
     defaultCode: `def solution(arr):
     result = []
     def flatten(items):
@@ -37,7 +43,8 @@ print(solution([1, 2, 3]))`,
   },
   Java: {
     id: "java",
-    icon: "☕",
+    icon: DiJava({ className: "h-4 w-4" }),
+    iconColor: "text-orange-500",
     defaultCode: `import java.util.*;
 
 public class Solution {
@@ -60,7 +67,8 @@ public class Solution {
   },
   "C++": {
     id: "cpp",
-    icon: "⚡",
+    icon: TbBrandCpp({ className: "h-4 w-4" }),
+    iconColor: "text-blue-500",
     defaultCode: `#include <iostream>
 #include <vector>
 #include <variant>
