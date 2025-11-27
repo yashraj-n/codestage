@@ -15,6 +15,13 @@ export interface AssessmentEvent {
 	details?: string;
 }
 
+export interface CodeSnapshot {
+	id: string;
+	timestamp: string;
+	code: string;
+	eventId?: string;
+}
+
 export interface AssessmentSubmission {
 	code: string;
 	language: string;
@@ -22,6 +29,7 @@ export interface AssessmentSubmission {
 	notes: string;
 	submittedAt: string;
 	events?: AssessmentEvent[];
+	codeSnapshots?: CodeSnapshot[];
 }
 
 export interface Assessment {
