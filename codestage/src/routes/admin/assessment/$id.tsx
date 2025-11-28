@@ -516,7 +516,9 @@ function AssessmentViewPage() {
 							className="gap-1.5 border-emerald-500/25 bg-emerald-500/10 text-emerald-400"
 						>
 							<CheckCircle2 className="h-3 w-3" />
-							{assessment.status === "completed" ? "Completed" : assessment.status}
+							{assessment.status === "completed"
+								? "Completed"
+								: assessment.status}
 						</Badge>
 					</div>
 				</div>
@@ -605,7 +607,7 @@ function AssessmentViewPage() {
 																			: line.startsWith("✓")
 																				? "text-emerald-400"
 																				: line.startsWith("✗") ||
-																					  line.includes("Error")
+																						line.includes("Error")
 																					? "text-red-400"
 																					: "text-white/60"
 																	}

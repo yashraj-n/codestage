@@ -17,13 +17,7 @@ interface WorkspaceHeaderProps {
 }
 
 export function WorkspaceHeader({ isAdmin }: WorkspaceHeaderProps) {
-	const [_copied, setCopied] = useState(false);
-
-	const _handleCopyLink = () => {
-		navigator.clipboard.writeText(window.location.href);
-		setCopied(true);
-		setTimeout(() => setCopied(false), 2000);
-	};
+	const [_copied, _setCopied] = useState(false);
 
 	return (
 		<header className="relative z-20 flex h-14 items-center justify-between border-b border-white/[0.06] bg-[#0d0d14]/80 px-4 backdrop-blur-xl">

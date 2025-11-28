@@ -1,42 +1,40 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import type { JwtUser } from "@/lib/generated-api";
 
-interface AdminUser {
-	id: string;
-	email: string;
-	name: string;
-	photoURL: string | null;
+interface AuthToken {
+	token: string;
+	setToken: (token: string) => void;
+	removeToken: () => void;
 }
 
 interface AuthState {
-	admin: AdminUser | null;
-	isLoading: boolean;
-	signInWithGoogle: () => Promise<void>;
+	admin: JwtUser | null;
+	setAdmin: (admin: JwtUser) => void;
 	signOut: () => void;
 }
+
+export const useAuthTokenStore = create<AuthToken>()(
+	persist(
+		(set) => ({
+			token: "",
+			setToken: (token: string) => set({ token }),
+			removeToken: () => set({ token: "" }),
+		}),
+		{
+			name: "codestage-auth-token",
+			partialize: (state) => ({ token: state.token }),
+		},
+	),
+);
 
 export const useAuthStore = create<AuthState>()(
 	persist(
 		(set) => ({
 			admin: null,
-			isLoading: false,
-
-			signInWithGoogle: async () => {
-				set({ isLoading: true });
-
-				await new Promise((resolve) => setTimeout(resolve, 1500));
-
-				const mockAdmin: AdminUser = {
-					id: crypto.randomUUID(),
-					email: "admin@codestage.io",
-					name: "CodeStage Admin",
-					photoURL: null,
-				};
-
-				set({ admin: mockAdmin, isLoading: false });
-			},
-
+			setAdmin: (admin: JwtUser) => set({ admin }),
 			signOut: () => {
+				useAuthTokenStore.getState().removeToken();
 				set({ admin: null });
 			},
 		}),

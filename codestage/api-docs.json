@@ -1,0 +1,99 @@
+{
+    "openapi": "3.1.0",
+    "info": {
+        "title": "OpenAPI definition",
+        "version": "v0"
+    },
+    "servers": [
+        {
+            "url": "http://localhost:3000",
+            "description": "Generated server url"
+        }
+    ],
+    "paths": {
+        "/real": {
+            "get": {
+                "tags": [
+                    "test-controller"
+                ],
+                "operationId": "test",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/me": {
+            "get": {
+                "tags": [
+                    "admin-controller"
+                ],
+                "operationId": "getAdmin",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "*/*": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/JwtUser"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        }
+    },
+    "components": {
+        "schemas": {
+            "JwtUser": {
+                "type": "object",
+                "description": "User info stored in JWT",
+                "properties": {
+                    "userId": {
+                        "type": "string",
+                        "description": "User ID"
+                    },
+                    "name": {
+                        "type": "string",
+                        "description": "Full name of User"
+                    },
+                    "email": {
+                        "type": "string",
+                        "description": "Email of User"
+                    },
+                    "photoUrl": {
+                        "type": "string",
+                        "description": "Photo URL of User"
+                    }
+                },
+                "required": [
+                    "email",
+                    "name",
+                    "photoUrl",
+                    "userId"
+                ]
+            }
+        },
+        "securitySchemes": {
+            "bearerAuth": {
+                "type": "http",
+                "scheme": "bearer",
+                "bearerFormat": "JWT"
+            }
+        }
+    }
+}

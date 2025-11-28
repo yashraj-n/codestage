@@ -68,6 +68,8 @@ function AdminDashboard() {
 
 	useEffect(() => {
 		if (!admin) {
+			console.log(admin);
+			alert("You are not authorized to access this page");
 			navigate({ to: "/admin" });
 			return;
 		}
@@ -168,12 +170,28 @@ function AdminDashboard() {
 					</Link>
 
 					<div className="flex items-center gap-4">
-						<span className="text-sm text-muted-foreground">{admin.email}</span>
+						{admin.photoUrl ? (
+							<img
+								src={admin.photoUrl}
+								alt={`${admin.name}'s profile`}
+								className="h-9 w-9 rounded-full object-cover border border-border"
+								aria-label={`Admin profile photo: ${admin.name}`}
+							/>
+						) : (
+							<div className="h-9 w-9 rounded-full bg-muted flex items-center justify-center text-foreground/60 border border-border">
+								<span className="text-base font-medium">
+									{admin.name?.[0] ?? ""}
+								</span>
+							</div>
+						)}
+						<span className="text-sm text-muted-foreground">{admin.name}</span>
 						<Button
 							variant="ghost"
 							size="sm"
 							onClick={handleSignOut}
 							className="gap-2"
+							aria-label="Sign out"
+							tabIndex={0}
 						>
 							<LogOut className="h-4 w-4" />
 							Sign out
@@ -267,6 +285,7 @@ function AdminDashboard() {
 									<div className="space-y-4 py-4">
 										<div className="space-y-2">
 											<Label htmlFor="name">Candidate Name</Label>
+											{/** biome-ignore lint/correctness/useUniqueElementIds: <id> */}
 											<Input
 												id="name"
 												placeholder="John Doe"
@@ -276,6 +295,7 @@ function AdminDashboard() {
 										</div>
 										<div className="space-y-2">
 											<Label htmlFor="email">Candidate Email</Label>
+											{/** biome-ignore lint/correctness/useUniqueElementIds: <id> */}
 											<Input
 												id="email"
 												type="email"
@@ -406,7 +426,11 @@ function AdminDashboard() {
 															asChild
 															title="View submission"
 														>
-															<Link to={`/admin/assessment/${assessment.id}`}>
+															<Link
+																to={
+																	`/admin/assessment/${assessment.id}` as unknown as string
+																}
+															>
 																<Eye className="h-4 w-4" />
 															</Link>
 														</Button>

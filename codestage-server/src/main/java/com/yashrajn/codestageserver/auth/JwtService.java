@@ -4,6 +4,7 @@ import com.auth0.jwt.JWT;
 import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.exceptions.JWTVerificationException;
 import com.auth0.jwt.interfaces.DecodedJWT;
+import com.yashrajn.codestageserver.utils.JsonSerializable;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -17,19 +18,21 @@ public class JwtService {
         this.algorithm = Algorithm.HMAC256(jwtSecret);
     }
 
-    public String generateJwtToken(String id) {
+    public String generateJwtToken(String id, JwtUser user) {
         return JWT.create()
                 .withIssuer(issuer)
                 .withSubject(id)
+                .withClaim("user", user.toJson())
                 .sign(algorithm);
     }
 
-    public String validateJwtToken(String token) throws JWTVerificationException {
+    public JwtUser validateJwtToken(String token) throws JWTVerificationException {
         DecodedJWT decoded = JWT.require(algorithm)
                 .withIssuer(issuer)
                 .build()
                 .verify(token);
-        return decoded.getSubject();
+        String claimsJson = decoded.getClaim("user").asString();
+        return JsonSerializable.fromJson(claimsJson, JwtUser.class);
     }
 }
 

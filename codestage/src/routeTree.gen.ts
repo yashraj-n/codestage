@@ -9,12 +9,25 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as TermsRouteImport } from './routes/terms'
+import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as WorkspaceIndexRouteImport } from './routes/workspace/index'
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
+import { Route as AuthRedirectRouteImport } from './routes/auth/redirect'
 import { Route as AdminDashboardRouteImport } from './routes/admin/dashboard'
 import { Route as AdminAssessmentIdRouteImport } from './routes/admin/assessment/$id'
 
+const TermsRoute = TermsRouteImport.update({
+  id: '/terms',
+  path: '/terms',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -30,6 +43,11 @@ const AdminIndexRoute = AdminIndexRouteImport.update({
   path: '/admin/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthRedirectRoute = AuthRedirectRouteImport.update({
+  id: '/auth/redirect',
+  path: '/auth/redirect',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminDashboardRoute = AdminDashboardRouteImport.update({
   id: '/admin/dashboard',
   path: '/admin/dashboard',
@@ -43,14 +61,20 @@ const AdminAssessmentIdRoute = AdminAssessmentIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/privacy': typeof PrivacyRoute
+  '/terms': typeof TermsRoute
   '/admin/dashboard': typeof AdminDashboardRoute
+  '/auth/redirect': typeof AuthRedirectRoute
   '/admin': typeof AdminIndexRoute
   '/workspace': typeof WorkspaceIndexRoute
   '/admin/assessment/$id': typeof AdminAssessmentIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/privacy': typeof PrivacyRoute
+  '/terms': typeof TermsRoute
   '/admin/dashboard': typeof AdminDashboardRoute
+  '/auth/redirect': typeof AuthRedirectRoute
   '/admin': typeof AdminIndexRoute
   '/workspace': typeof WorkspaceIndexRoute
   '/admin/assessment/$id': typeof AdminAssessmentIdRoute
@@ -58,7 +82,10 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/privacy': typeof PrivacyRoute
+  '/terms': typeof TermsRoute
   '/admin/dashboard': typeof AdminDashboardRoute
+  '/auth/redirect': typeof AuthRedirectRoute
   '/admin/': typeof AdminIndexRoute
   '/workspace/': typeof WorkspaceIndexRoute
   '/admin/assessment/$id': typeof AdminAssessmentIdRoute
@@ -67,21 +94,30 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/privacy'
+    | '/terms'
     | '/admin/dashboard'
+    | '/auth/redirect'
     | '/admin'
     | '/workspace'
     | '/admin/assessment/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/privacy'
+    | '/terms'
     | '/admin/dashboard'
+    | '/auth/redirect'
     | '/admin'
     | '/workspace'
     | '/admin/assessment/$id'
   id:
     | '__root__'
     | '/'
+    | '/privacy'
+    | '/terms'
     | '/admin/dashboard'
+    | '/auth/redirect'
     | '/admin/'
     | '/workspace/'
     | '/admin/assessment/$id'
@@ -89,7 +125,10 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  PrivacyRoute: typeof PrivacyRoute
+  TermsRoute: typeof TermsRoute
   AdminDashboardRoute: typeof AdminDashboardRoute
+  AuthRedirectRoute: typeof AuthRedirectRoute
   AdminIndexRoute: typeof AdminIndexRoute
   WorkspaceIndexRoute: typeof WorkspaceIndexRoute
   AdminAssessmentIdRoute: typeof AdminAssessmentIdRoute
@@ -97,6 +136,20 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/terms': {
+      id: '/terms'
+      path: '/terms'
+      fullPath: '/terms'
+      preLoaderRoute: typeof TermsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -118,6 +171,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/auth/redirect': {
+      id: '/auth/redirect'
+      path: '/auth/redirect'
+      fullPath: '/auth/redirect'
+      preLoaderRoute: typeof AuthRedirectRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin/dashboard': {
       id: '/admin/dashboard'
       path: '/admin/dashboard'
@@ -137,7 +197,10 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  PrivacyRoute: PrivacyRoute,
+  TermsRoute: TermsRoute,
   AdminDashboardRoute: AdminDashboardRoute,
+  AuthRedirectRoute: AuthRedirectRoute,
   AdminIndexRoute: AdminIndexRoute,
   WorkspaceIndexRoute: WorkspaceIndexRoute,
   AdminAssessmentIdRoute: AdminAssessmentIdRoute,

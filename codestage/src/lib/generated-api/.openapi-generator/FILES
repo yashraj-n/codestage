@@ -1,0 +1,11 @@
+.openapi-generator-ignore
+apis/AdminControllerApi.ts
+apis/TestControllerApi.ts
+apis/index.ts
+docs/AdminControllerApi.md
+docs/JwtUser.md
+docs/TestControllerApi.md
+index.ts
+models/JwtUser.ts
+models/index.ts
+runtime.ts

@@ -32,15 +32,15 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         }
 
         String token = header.substring(7);
-        String userId;
+        JwtUser user;
 
         try {
-            userId = jwtService.validateJwtToken(token);
+            user = jwtService.validateJwtToken(token);
         } catch (JWTVerificationException ignored) {
             throw new JwtAuthenticationException("Invalid or Expired JWT token");
         }
 
-        UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(new JwtUser(userId), null, List.of());
+        UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(user, null, List.of());
 
         auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
         SecurityContextHolder.getContext().setAuthentication(auth);
