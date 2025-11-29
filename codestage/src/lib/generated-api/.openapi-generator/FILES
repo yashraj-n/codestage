@@ -1,11 +1,16 @@
-.openapi-generator-ignore
 apis/AdminControllerApi.ts
+apis/AssessmentControllerApi.ts
 apis/TestControllerApi.ts
 apis/index.ts
 docs/AdminControllerApi.md
+docs/Assessment.md
+docs/AssessmentControllerApi.md
+docs/CreateAssessmentDTO.md
 docs/JwtUser.md
 docs/TestControllerApi.md
 index.ts
+models/Assessment.ts
+models/CreateAssessmentDTO.ts
 models/JwtUser.ts
 models/index.ts
 runtime.ts

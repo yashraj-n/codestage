@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>You're Invited to CodeStage Assessment</title>
+    <!--
+    CODESTAGE EMAIL TEMPLATE v1.0
+
+    TEMPLATE VARIABLES TO REPLACE:
+    - {{candidateName}} - Candidate's first name or full name
+    - {{inviterName}} - Full name of person who sent the invitation
+    - {{inviterInitials}} - 1-2 character initials (e.g., "JD" for John Doe)
+    - {{assessmentLink}} - Unique time-limited assessment URL
+    - {{assessmentNotes}} - Optional notes/instructions from inviter (e.g., meeting link, special instructions)
+                            If empty/null, remove the entire "Additional Instructions" section
+
+    CUSTOMIZATION NOTES:
+    - All colors use CSS variables for easy theme switching
+    - Mobile-responsive design tested on all major email clients
+    - Inline styles required for email compatibility
+    - Link expiration time can be changed in warning box (currently 10 minutes)
+
+    COLOR PALETTE:
+    - Background: #09090b (dark zinc)
+    - Card: #18181b (zinc-900)
+    - Borders: #27272a (zinc-800)
+    - Text primary: #fafafa (zinc-50)
+    - Text secondary: #a1a1aa (zinc-400)
+    - Text muted: #71717a (zinc-500)
+    - Accent: #7c3aed → #a78bfa (purple gradient)
+    - CTA: #fafafa on dark background
+    - Warning: #fbbf24 (amber-400)
+  -->
+</head>
+<body style="margin: 0; padding: 0; background-color: #09090b; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;">
+<!--
+  OUTER WRAPPER TABLE
+  Note: Uses table-based layout for maximum email client compatibility
+-->
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color: #09090b;">
+    <tr>
+        <td style="padding: 40px 20px;">
+            <!--
+              MAIN CONTENT CONTAINER
+              Note: max-width keeps email readable on desktop, centered with margin auto
+            -->
+            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="max-width: 520px; margin: 0 auto;">
+
+                <!-- LOGO HEADER -->
+                <tr>
+                    <td style="padding-bottom: 32px; text-align: center;">
+                        <!-- Note: Replace this with your actual logo image for production -->
+                        <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 auto;">
+                            <tr>
+                                <td style="background-color: #fafafa; width: 40px; height: 40px; border-radius: 10px; text-align: center; vertical-align: middle;">
+                                    <span style="font-size: 20px; color: #09090b;">&#60;/&#62;</span>
+                                </td>
+                                <td style="padding-left: 10px;">
+                                    <span style="font-size: 18px; font-weight: 600; color: #fafafa; letter-spacing: -0.025em;">CodeStage</span>
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+
+                <!-- MAIN CARD -->
+                <tr>
+                    <td>
+                        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color: #18181b; border: 1px solid #27272a; border-radius: 16px; overflow: hidden;">
+
+                            <!-- PURPLE ACCENT BAR -->
+                            <!-- Note: Adds visual interest and brand identity -->
+                            <tr>
+                                <td style="height: 4px; background: linear-gradient(90deg, #7c3aed 0%, #8b5cf6 50%, #a78bfa 100%);"></td>
+                            </tr>
+
+                            <!-- CARD CONTENT -->
+                            <tr>
+                                <td style="padding: 40px 36px;">
+
+                                    <!-- GREETING SECTION -->
+                                    <p style="margin: 0 0 8px 0; font-size: 14px; color: #71717a; text-transform: uppercase; letter-spacing: 0.05em;">Assessment Invitation</p>
+                                    <h1 style="margin: 0 0 24px 0; font-size: 26px; font-weight: 700; color: #fafafa; line-height: 1.3;">
+                                        Hi {{candidateName}},
+                                    </h1>
+
+                                    <!-- BODY TEXT -->
+                                    <!-- Note: Keep this concise - candidates scan emails quickly -->
+                                    <p style="margin: 0 0 24px 0; font-size: 16px; color: #a1a1aa; line-height: 1.7;">
+                                        You've been invited to complete a coding assessment on CodeStage. This is your opportunity to demonstrate your technical skills in a real-time collaborative environment.
+                                    </p>
+
+                                    <!-- INVITED BY BOX -->
+                                    <!-- Note: Adds personal touch and legitimacy to invitation -->
+                                    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin-bottom: 28px;">
+                                        <tr>
+                                            <td style="background-color: #27272a; border-radius: 10px; padding: 16px 20px;">
+                                                <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                                                    <tr>
+                                                        <td style="width: 40px; vertical-align: middle;">
+                                                            <!-- Note: Replace with actual profile image URL if available -->
+                                                            <div style="width: 36px; height: 36px; background-color: #3f3f46; border-radius: 50%; text-align: center; line-height: 36px;">
+                                                                <span style="color: #a1a1aa; font-size: 14px; font-weight: 600;">{{inviterInitials}}</span>
+                                                            </div>
+                                                        </td>
+                                                        <td style="padding-left: 14px; vertical-align: middle;">
+                                                            <p style="margin: 0; font-size: 13px; color: #71717a;">Invited by</p>
+                                                            <p style="margin: 4px 0 0 0; font-size: 15px; color: #fafafa; font-weight: 500;">{{inviterName}}</p>
+                                                        </td>
+                                                    </tr>
+                                                </table>
+                                            </td>
+                                        </tr>
+                                    </table>
+
+                                    <!-- CTA BUTTON -->
+                                    <!-- Note: High contrast button ensures visibility and clicks -->
+                                    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin-bottom: 28px;">
+                                        <tr>
+                                            <td align="center">
+                                                <!-- Note: Use your tracking parameters in the link if needed -->
+                                                <a href="{{assessmentLink}}" style="display: inline-block; background-color: #fafafa; color: #09090b; font-size: 15px; font-weight: 600; text-decoration: none; padding: 14px 32px; border-radius: 8px; transition: background-color 0.2s;">
+                                                    Start Assessment →
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    </table>
+
+                                    <!-- ASSESSMENT NOTES/INSTRUCTIONS -->
+                                    <!-- Note: This section is conditionally rendered if {{assessmentNotes}} is provided -->
+                                    <!-- Remove this entire table if no notes are provided -->
+                                    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin-bottom: 28px;">
+                                        <tr>
+                                            <td style="background-color: #27272a; border-left: 3px solid #7c3aed; border-radius: 8px; padding: 18px 20px;">
+                                                <p style="margin: 0 0 8px 0; font-size: 13px; color: #7c3aed; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">
+                                                    📝 Additional Instructions
+                                                </p>
+                                                <div style="font-size: 14px; color: #d4d4d8; line-height: 1.6; white-space: pre-wrap;">{{assessmentNotes}}</div>
+                                                <!-- Note: white-space: pre-wrap preserves line breaks from the inviter -->
+                                            </td>
+                                        </tr>
+                                    </table>
+
+                                    <!-- WARNING/URGENCY BOX -->
+                                    <!-- Note: Creates urgency while being informative, not aggressive -->
+                                    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                                        <tr>
+                                            <td style="background-color: rgba(251, 191, 36, 0.1); border: 1px solid rgba(251, 191, 36, 0.2); border-radius: 10px; padding: 16px 20px;">
+                                                <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                                                    <tr>
+                                                        <td style="width: 24px; vertical-align: top; padding-top: 2px;">
+                                                            <span style="font-size: 16px;">⏱️</span>
+                                                        </td>
+                                                        <td style="padding-left: 12px;">
+                                                            <p style="margin: 0; font-size: 14px; color: #fbbf24; font-weight: 600;">Link expires in 10 minutes</p>
+                                                            <p style="margin: 6px 0 0 0; font-size: 13px; color: #a1a1aa; line-height: 1.5;">
+                                                                This invitation link is time-sensitive for security purposes. Please start your assessment promptly.
+                                                            </p>
+                                                        </td>
+                                                    </tr>
+                                                </table>
+                                            </td>
+                                        </tr>
+                                    </table>
+
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+
+                <!-- FOOTER -->
+                <!-- Note: Include support contact and legal requirements -->
+                <tr>
+                    <td style="padding-top: 32px; text-align: center;">
+                        <p style="margin: 0 0 8px 0; font-size: 13px; color: #52525b;">
+                            Need help? Contact our support team.
+                            <!-- Note: Add your support email here, e.g., support@codestage.dev -->
+                        </p>
+                        <p style="margin: 0; font-size: 12px; color: #3f3f46;">
+                            © 2025 CodeStage. All rights reserved.
+                        </p>
+                        <!-- Note: Add unsubscribe link if required by email regulations (CAN-SPAM, GDPR) -->
+                    </td>
+                </tr>
+
+            </table>
+        </td>
+    </tr>
+</table>
+
+<!--
+  TESTING CHECKLIST:
+  □ Test in Gmail (web and mobile)
+  □ Test in Outlook (desktop and web)
+  □ Test in Apple Mail (macOS and iOS)
+  □ Test in Yahoo Mail
+  □ Verify all template variables are replaced
+  □ Check link expiration timer functionality
+  □ Test button tracking (if implemented)
+  □ Verify mobile responsiveness
+  □ Test with long candidate names
+  □ Test with long inviter names
+  □ Check dark mode compatibility
+
+  INTEGRATION TIPS:
+  - Use a transactional email service (SendGrid, Mailgun, AWS SES)
+  - Implement proper SPF, DKIM, and DMARC records
+  - Add email open tracking (transparent pixel)
+  - Add click tracking for the CTA button
+  - Log email delivery status for debugging
+  - Set up bounce and complaint handling
+
+  OPTIONAL ENHANCEMENTS:
+  - Add assessment duration/difficulty level
+  - Include company logo of hiring organization
+  - Add preview text optimization
+  - Include assessment preparation tips link
+  - Add social proof (testimonials, candidate success rate)
+-->
+</body>
+</html>

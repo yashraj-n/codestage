@@ -1,19 +1,20 @@
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import {
+	AlertCircle,
 	Check,
 	Clock,
 	Code2,
 	Copy,
-	ExternalLink,
 	Eye,
 	Loader2,
 	LogOut,
 	Mail,
 	Plus,
-	Trash2,
+	RefreshCw,
 	Users,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -41,12 +42,9 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
-import {
-	type Assessment,
-	addAssessment,
-	deleteAssessment,
-	getAssessments,
-} from "@/lib/assessments";
+import { Textarea } from "@/components/ui/textarea";
+import { assessmentsApi } from "@/lib/api-client";
+import type { Assessment, CreateAssessmentDTO } from "@/lib/generated-api/models";
 import { useAuthStore } from "@/stores/auth-store";
 
 export const Route = createFileRoute("/admin/dashboard")({
@@ -56,50 +54,68 @@ export const Route = createFileRoute("/admin/dashboard")({
 function AdminDashboard() {
 	const { admin, signOut } = useAuthStore();
 	const navigate = useNavigate();
-	const [assessments, setAssessments] = useState<Assessment[]>([]);
+	const queryClient = useQueryClient();
+	const formId = useId();
+
+	const {
+		data: assessments = [],
+		isLoading,
+		isError,
+		error,
+		refetch,
+	} = useQuery({
+		queryKey: ["assessments"],
+		queryFn: () => assessmentsApi.getAllAssessments(),
+		enabled: !!admin,
+	});
+
+	const createAssessmentMutation = useMutation({
+		mutationFn: (dto: CreateAssessmentDTO) =>
+			assessmentsApi.createAssessment({ createAssessmentDTO: dto }),
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: ["assessments"] });
+		},
+	});
+
 	const [isDialogOpen, setIsDialogOpen] = useState(false);
 	const [candidateName, setCandidateName] = useState("");
 	const [candidateEmail, setCandidateEmail] = useState("");
-	const [isCreating, setIsCreating] = useState(false);
-	const [copiedId, setCopiedId] = useState<string | null>(null);
+	const [assessmentNotes, setAssessmentNotes] = useState("");
+	const [copiedId, setCopiedId] = useState<number | null>(null);
 	const [createdAssessment, setCreatedAssessment] = useState<Assessment | null>(
 		null,
 	);
 
 	useEffect(() => {
 		if (!admin) {
-			console.log(admin);
-			alert("You are not authorized to access this page");
 			navigate({ to: "/admin" });
-			return;
 		}
-		setAssessments(getAssessments());
 	}, [admin, navigate]);
 
 	const handleCreateAssessment = async () => {
 		if (!candidateName.trim() || !candidateEmail.trim()) return;
 
-		setIsCreating(true);
-		await new Promise((resolve) => setTimeout(resolve, 800));
+		try {
+			await createAssessmentMutation.mutateAsync({
+				candidateName: candidateName.trim(),
+				candidateEmail: candidateEmail.trim(),
+				assessmentNotes: assessmentNotes.trim(),
+			});
 
-		const newAssessment = addAssessment({
-			candidateName: candidateName.trim(),
-			candidateEmail: candidateEmail.trim(),
-		});
-
-		setAssessments(getAssessments());
-		setCreatedAssessment(newAssessment);
-		setCandidateName("");
-		setCandidateEmail("");
-		setIsCreating(false);
+			setCreatedAssessment({
+				candidateName: candidateName.trim(),
+				candidateEmail: candidateEmail.trim(),
+				inviteNotes: assessmentNotes.trim(),
+			});
+			setCandidateName("");
+			setCandidateEmail("");
+			setAssessmentNotes("");
+		} catch (err) {
+			console.error("Failed to create assessment:", err);
+		}
 	};
 
-	const handleDeleteAssessment = (id: string) => {
-		deleteAssessment(id);
-		setAssessments(getAssessments());
-	};
-
-	const handleCopyLink = async (id: string, link: string) => {
+	const handleCopyLink = async (id: number, link: string) => {
 		await navigator.clipboard.writeText(link);
 		setCopiedId(id);
 		setTimeout(() => setCopiedId(null), 2000);
@@ -115,28 +131,33 @@ function AdminDashboard() {
 		setCreatedAssessment(null);
 		setCandidateName("");
 		setCandidateEmail("");
+		setAssessmentNotes("");
 	};
 
-	const getStatusBadge = (status: Assessment["status"]) => {
-		const variants: Record<Assessment["status"], string> = {
-			pending: "bg-amber-500/10 text-amber-500 border-amber-500/20",
-			in_progress: "bg-blue-500/10 text-blue-500 border-blue-500/20",
-			completed: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20",
-		};
-		const labels: Record<Assessment["status"], string> = {
-			pending: "Pending",
-			in_progress: "In Progress",
-			completed: "Completed",
-		};
+	const getStatusBadge = (completed?: boolean) => {
+		if (completed) {
+			return (
+				<Badge
+					variant="outline"
+					className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
+				>
+					Completed
+				</Badge>
+			);
+		}
 		return (
-			<Badge variant="outline" className={variants[status]}>
-				{labels[status]}
+			<Badge
+				variant="outline"
+				className="bg-amber-500/10 text-amber-500 border-amber-500/20"
+			>
+				Pending
 			</Badge>
 		);
 	};
 
-	const formatDate = (dateString: string) => {
-		return new Date(dateString).toLocaleDateString("en-US", {
+	const formatDate = (date?: Date) => {
+		if (!date) return "N/A";
+		return new Date(date).toLocaleDateString("en-US", {
 			month: "short",
 			day: "numeric",
 			year: "numeric",
@@ -149,6 +170,43 @@ function AdminDashboard() {
 		return (
 			<div className="flex min-h-screen items-center justify-center">
 				<Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+			</div>
+		);
+	}
+
+	if (isLoading) {
+		return (
+			<div className="flex min-h-screen flex-col items-center justify-center gap-4">
+				<Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+				<p className="text-sm text-muted-foreground">Loading assessments...</p>
+			</div>
+		);
+	}
+
+	if (isError) {
+		return (
+			<div className="flex min-h-screen flex-col items-center justify-center gap-4">
+				<div className="flex h-16 w-16 items-center justify-center rounded-full bg-destructive/10">
+					<AlertCircle className="h-8 w-8 text-destructive" />
+				</div>
+				<div className="text-center">
+					<h2 className="text-lg font-semibold text-foreground">
+						Failed to load assessments
+					</h2>
+					<p className="mt-1 text-sm text-muted-foreground">
+						{error instanceof Error ? error.message : "An unexpected error occurred"}
+					</p>
+				</div>
+				<Button
+					onClick={() => refetch()}
+					variant="outline"
+					className="gap-2"
+					aria-label="Retry loading assessments"
+					tabIndex={0}
+				>
+					<RefreshCw className="h-4 w-4" />
+					Retry
+				</Button>
 			</div>
 		);
 	}
@@ -229,7 +287,7 @@ function AdminDashboard() {
 											Assessment Created
 										</DialogTitle>
 										<DialogDescription>
-											The assessment link has been created successfully.
+											The assessment has been created successfully.
 										</DialogDescription>
 									</DialogHeader>
 									<div className="space-y-4 py-4">
@@ -237,35 +295,9 @@ function AdminDashboard() {
 											<div className="flex items-center gap-2 text-sm text-emerald-600 dark:text-emerald-400">
 												<Mail className="h-4 w-4" />
 												<span>
-													Email sent to{" "}
+													Assessment created for{" "}
 													<strong>{createdAssessment.candidateEmail}</strong>
 												</span>
-											</div>
-										</div>
-										<div className="rounded-lg border border-border/50 bg-muted/30 p-3">
-											<p className="mb-1 text-xs text-muted-foreground">
-												Session Link
-											</p>
-											<div className="flex items-center gap-2">
-												<code className="flex-1 truncate text-sm">
-													{createdAssessment.sessionLink}
-												</code>
-												<Button
-													size="sm"
-													variant="ghost"
-													onClick={() =>
-														handleCopyLink(
-															createdAssessment.id,
-															createdAssessment.sessionLink,
-														)
-													}
-												>
-													{copiedId === createdAssessment.id ? (
-														<Check className="h-4 w-4 text-emerald-500" />
-													) : (
-														<Copy className="h-4 w-4" />
-													)}
-												</Button>
 											</div>
 										</div>
 										<Button onClick={closeDialog} className="w-full">
@@ -278,42 +310,63 @@ function AdminDashboard() {
 									<DialogHeader>
 										<DialogTitle>Create New Assessment</DialogTitle>
 										<DialogDescription>
-											Enter the candidate details to generate a unique session
-											link.
+											Enter the candidate details to create a new assessment.
 										</DialogDescription>
 									</DialogHeader>
 									<div className="space-y-4 py-4">
 										<div className="space-y-2">
-											<Label htmlFor="name">Candidate Name</Label>
-											{/** biome-ignore lint/correctness/useUniqueElementIds: <id> */}
+											<Label htmlFor={`${formId}-name`}>Candidate Name</Label>
 											<Input
-												id="name"
+												id={`${formId}-name`}
 												placeholder="John Doe"
 												value={candidateName}
 												onChange={(e) => setCandidateName(e.target.value)}
+												aria-label="Candidate name"
 											/>
 										</div>
 										<div className="space-y-2">
-											<Label htmlFor="email">Candidate Email</Label>
-											{/** biome-ignore lint/correctness/useUniqueElementIds: <id> */}
+											<Label htmlFor={`${formId}-email`}>Candidate Email</Label>
 											<Input
-												id="email"
+												id={`${formId}-email`}
 												type="email"
 												placeholder="john@example.com"
 												value={candidateEmail}
 												onChange={(e) => setCandidateEmail(e.target.value)}
+												aria-label="Candidate email"
 											/>
 										</div>
+										<div className="space-y-2">
+											<Label htmlFor={`${formId}-notes`}>Notes (Optional)</Label>
+											<Textarea
+												id={`${formId}-notes`}
+												placeholder="Add any notes for this assessment..."
+												value={assessmentNotes}
+												onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
+													setAssessmentNotes(e.target.value)
+												}
+												aria-label="Assessment notes"
+												rows={3}
+											/>
+										</div>
+										{createAssessmentMutation.isError && (
+											<div className="rounded-lg border border-destructive/20 bg-destructive/5 p-3">
+												<p className="text-sm text-destructive">
+													{createAssessmentMutation.error instanceof Error
+														? createAssessmentMutation.error.message
+														: "Failed to create assessment"}
+												</p>
+											</div>
+										)}
 										<Button
 											onClick={handleCreateAssessment}
 											disabled={
-												isCreating ||
+												createAssessmentMutation.isPending ||
 												!candidateName.trim() ||
 												!candidateEmail.trim()
 											}
 											className="w-full bg-foreground text-background hover:bg-foreground/90"
 										>
-											{isCreating ? (
+											{createAssessmentMutation.isPending ? (
 												<Loader2 className="h-4 w-4 animate-spin" />
 											) : (
 												"Create Assessment"
@@ -347,7 +400,7 @@ function AdminDashboard() {
 						</CardHeader>
 						<CardContent>
 							<p className="text-3xl font-semibold">
-								{assessments.filter((a) => a.status === "pending").length}
+								{assessments.filter((a) => !a.completed).length}
 							</p>
 						</CardContent>
 					</Card>
@@ -360,7 +413,7 @@ function AdminDashboard() {
 						</CardHeader>
 						<CardContent>
 							<p className="text-3xl font-semibold">
-								{assessments.filter((a) => a.status === "completed").length}
+								{assessments.filter((a) => a.completed).length}
 							</p>
 						</CardContent>
 					</Card>
@@ -387,6 +440,8 @@ function AdminDashboard() {
 									onClick={() => setIsDialogOpen(true)}
 									variant="outline"
 									className="gap-2"
+									aria-label="Create new assessment"
+									tabIndex={0}
 								>
 									<Plus className="h-4 w-4" />
 									Create Assessment
@@ -407,80 +462,57 @@ function AdminDashboard() {
 									{assessments.map((assessment) => (
 										<TableRow key={assessment.id}>
 											<TableCell className="font-medium">
-												{assessment.candidateName}
+												{assessment.candidateName ?? "N/A"}
 											</TableCell>
 											<TableCell className="text-muted-foreground">
-												{assessment.candidateEmail}
+												{assessment.candidateEmail ?? "N/A"}
 											</TableCell>
-											<TableCell>{getStatusBadge(assessment.status)}</TableCell>
+											<TableCell>
+												{getStatusBadge(assessment.completed)}
+											</TableCell>
 											<TableCell className="text-muted-foreground">
 												{formatDate(assessment.createdAt)}
 											</TableCell>
 											<TableCell className="text-right">
 												<div className="flex items-center justify-end gap-1">
-													{assessment.status === "completed" ? (
+													{assessment.completed ? (
 														<Button
 															variant="ghost"
 															size="icon"
 															className="h-8 w-8"
 															asChild
 															title="View submission"
+															aria-label="View submission"
 														>
 															<Link
-																to={
-																	`/admin/assessment/${assessment.id}` as unknown as string
-																}
+																to="/admin/assessment/$id"
+																params={{ id: String(assessment.id) }}
 															>
 																<Eye className="h-4 w-4" />
 															</Link>
 														</Button>
 													) : (
-														<>
-															<Button
-																variant="ghost"
-																size="icon"
-																className="h-8 w-8"
-																onClick={() =>
-																	handleCopyLink(
-																		assessment.id,
-																		assessment.sessionLink,
-																	)
-																}
-																title="Copy link"
-															>
-																{copiedId === assessment.id ? (
-																	<Check className="h-4 w-4 text-emerald-500" />
-																) : (
-																	<Copy className="h-4 w-4" />
-																)}
-															</Button>
-															<Button
-																variant="ghost"
-																size="icon"
-																className="h-8 w-8"
-																asChild
-																title="Open session"
-															>
-																<a
-																	href={assessment.sessionLink}
-																	target="_blank"
-																	rel="noopener noreferrer"
-																>
-																	<ExternalLink className="h-4 w-4" />
-																</a>
-															</Button>
-															<Button
-																variant="ghost"
-																size="icon"
-																className="h-8 w-8 text-destructive hover:text-destructive"
-																onClick={() =>
-																	handleDeleteAssessment(assessment.id)
-																}
-																title="Delete"
-															>
-																<Trash2 className="h-4 w-4" />
-															</Button>
-														</>
+														<Button
+															variant="ghost"
+															size="icon"
+															className="h-8 w-8"
+															onClick={() =>
+																assessment.id &&
+																handleCopyLink(
+																	assessment.id,
+																	`${window.location.origin}/assessment/${assessment.id}`,
+																)
+															}
+															title="Copy link"
+															aria-label="Copy assessment link"
+															tabIndex={0}
+														>
+															{copiedId === assessment.id ? (
+																<Check className="h-4 w-4 text-emerald-500" />
+															) : (
+																<Copy className="h-4 w-4" />
+															)}
+														</Button>
 													)}
 												</div>
 											</TableCell>

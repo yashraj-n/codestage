@@ -19,7 +19,7 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http, JwtAuthFilter jwtAuthFilter, JwtSuccessHandler jwtHandler) throws Exception {
         http.authorizeHttpRequests(
                         req ->
-                                req.requestMatchers("/", "/login", "/error").permitAll()
+                                req.requestMatchers("/", "/login", "/error", "/actuator/**", "/swagger/**", "/swagger-ui/**").permitAll()
                                         .anyRequest().authenticated()
                 ).httpBasic(AbstractHttpConfigurer::disable)
                 .formLogin(AbstractHttpConfigurer::disable)

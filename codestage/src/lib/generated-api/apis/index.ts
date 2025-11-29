@@ -1,4 +1,5 @@
 /* tslint:disable */
 /* eslint-disable */
-export * from "./AdminControllerApi";
-export * from "./TestControllerApi";
+export * from './AdminControllerApi';
+export * from './AssessmentControllerApi';
+export * from './TestControllerApi';

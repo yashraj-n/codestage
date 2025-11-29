@@ -1,3 +1,5 @@
 /* tslint:disable */
 /* eslint-disable */
-export * from "./JwtUser";
+export * from './Assessment';
+export * from './CreateAssessmentDTO';
+export * from './JwtUser';
