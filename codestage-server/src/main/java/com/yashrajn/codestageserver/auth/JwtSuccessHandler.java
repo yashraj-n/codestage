@@ -20,8 +20,8 @@ public class JwtSuccessHandler implements AuthenticationSuccessHandler {
 
     private final JwtService jwtService;
 
-    @Value("${client.redirect.url}")
-    private String clientRedirectUrl;
+    @Value("${client.url}")
+    private String clientUrl;
 
     JwtSuccessHandler(JwtService jwtService) {
         this.jwtService = jwtService;
@@ -37,12 +37,12 @@ public class JwtSuccessHandler implements AuthenticationSuccessHandler {
 
         Map<String, Object> attributes = auth.getPrincipal().getAttributes();
 
-        String token = jwtService.generateJwtToken(authentication.getName(), new JwtUser(
+        String token = jwtService.generateUserJwtToken(authentication.getName(), new JwtAdmin(
                 auth.getName(),
                 attributes.get("name").toString(),
                 attributes.get("email").toString(),
                 attributes.get("picture").toString()
         ));
-        response.sendRedirect(clientRedirectUrl + "?token=" + token);
+        response.sendRedirect(clientUrl + "/auth/redirect?token=" + token);
     }
 }

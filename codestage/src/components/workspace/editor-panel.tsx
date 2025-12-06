@@ -13,7 +13,7 @@ import {
 	Settings,
 } from "lucide-react";
 import type { editor } from "monaco-editor";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -30,6 +30,112 @@ import {
 } from "@/lib/editor-languages";
 import { ScratchPad } from "./scratchpad";
 
+// Remote cursor configuration
+interface RemoteCursor {
+	id: string;
+	name: string;
+	color: string;
+	position: { lineNumber: number; column: number };
+}
+
+// Inject styles for remote cursors
+const injectRemoteCursorStyles = () => {
+	const styleId = "remote-cursor-styles";
+	if (document.getElementById(styleId)) return;
+
+	const style = document.createElement("style");
+	style.id = styleId;
+	style.textContent = `
+		.remote-cursor-label {
+			padding: 2px 8px;
+			font-size: 11px;
+			font-weight: 600;
+			border-radius: 4px 4px 4px 0;
+			white-space: nowrap;
+			pointer-events: none;
+			z-index: 101;
+			animation: cursor-label-fade-in 0.15s ease-out;
+			box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+			margin-top: -20px;
+			margin-left: 2px;
+		}
+		@keyframes cursor-label-fade-in {
+			from { opacity: 0; transform: translateY(-4px); }
+			to { opacity: 1; transform: translateY(0); }
+		}
+		.remote-cursor-caret {
+			border-left: 2px solid #f59e0b !important;
+			margin-left: -1px;
+		}
+		.remote-cursor-caret::before {
+			content: '';
+			position: absolute;
+			left: -2px;
+			top: 0;
+			width: 2px;
+			height: 100%;
+			background: #f59e0b;
+			animation: cursor-blink 1s ease-in-out infinite;
+		}
+		@keyframes cursor-blink {
+			0%, 50% { opacity: 1; }
+			51%, 100% { opacity: 0.5; }
+		}
+		.remote-cursor-line-highlight {
+			background: rgba(245, 158, 11, 0.08) !important;
+		}
+	`;
+	document.head.appendChild(style);
+};
+
+// Content widget class for cursor label
+class RemoteCursorWidget implements editor.IContentWidget {
+	private readonly id: string;
+	private readonly domNode: HTMLElement;
+	private position: editor.IContentWidgetPosition;
+
+	constructor(
+		id: string,
+		name: string,
+		color: string,
+		lineNumber: number,
+		column: number,
+	) {
+		this.id = `remote-cursor-widget-${id}`;
+		this.domNode = document.createElement("div");
+		this.domNode.className = "remote-cursor-label";
+		this.domNode.style.backgroundColor = color;
+		this.domNode.style.color = "#fff";
+		this.domNode.textContent = name;
+		this.position = {
+			position: { lineNumber, column },
+			preference: [
+				0, // ABOVE
+				1, // BELOW
+			],
+		};
+	}
+
+	getId(): string {
+		return this.id;
+	}
+
+	getDomNode(): HTMLElement {
+		return this.domNode;
+	}
+
+	getPosition(): editor.IContentWidgetPosition {
+		return this.position;
+	}
+
+	updatePosition(lineNumber: number, column: number): void {
+		this.position = {
+			position: { lineNumber, column },
+			preference: [0, 1],
+		};
+	}
+}
+
 interface EditorPanelProps {
 	value: string;
 	onChange: (value: string) => void;
@@ -44,6 +150,117 @@ export function EditorPanel({ value, onChange, onRun }: EditorPanelProps) {
 	const [activeTab, setActiveTab] = useState("editor");
 	const [fontSize, setFontSize] = useState(14);
 	const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
+	const monacoRef = useRef<Monaco | null>(null);
+
+	// Remote cursor state
+	const [remoteCursor, setRemoteCursor] = useState<RemoteCursor>({
+		id: "candidate-1",
+		name: "Candidate",
+		color: "#f59e0b", // Amber color
+		position: { lineNumber: 1, column: 1 },
+	});
+
+	const remoteCursorWidgetRef = useRef<RemoteCursorWidget | null>(null);
+	const decorationsRef = useRef<string[]>([]);
+
+	// Update remote cursor decorations
+	const updateRemoteCursorDecorations = useCallback(() => {
+		const editor = editorRef.current;
+		const monaco = monacoRef.current;
+		if (!editor || !monaco) return;
+
+		const { lineNumber, column } = remoteCursor.position;
+
+		// Update decorations (cursor caret + line highlight)
+		const newDecorations: editor.IModelDeltaDecoration[] = [
+			// Cursor caret (vertical line)
+			{
+				range: new monaco.Range(lineNumber, column, lineNumber, column),
+				options: {
+					className: "remote-cursor-caret",
+					stickiness: 1,
+					hoverMessage: { value: `**${remoteCursor.name}** is here` },
+				},
+			},
+			// Line highlight
+			{
+				range: new monaco.Range(lineNumber, 1, lineNumber, 1),
+				options: {
+					isWholeLine: true,
+					className: "remote-cursor-line-highlight",
+					stickiness: 1,
+				},
+			},
+		];
+
+		decorationsRef.current = editor.deltaDecorations(
+			decorationsRef.current,
+			newDecorations,
+		);
+
+		// Update or create content widget for name label
+		if (remoteCursorWidgetRef.current) {
+			editor.removeContentWidget(remoteCursorWidgetRef.current);
+		}
+
+		remoteCursorWidgetRef.current = new RemoteCursorWidget(
+			remoteCursor.id,
+			remoteCursor.name,
+			remoteCursor.color,
+			lineNumber,
+			column,
+		);
+		editor.addContentWidget(remoteCursorWidgetRef.current);
+	}, [remoteCursor]);
+
+	// Effect to update decorations when remote cursor changes
+	useEffect(() => {
+		updateRemoteCursorDecorations();
+	}, [updateRemoteCursorDecorations]);
+
+	// Simulate random cursor movement for the candidate
+	useEffect(() => {
+		const interval = setInterval(() => {
+			const editor = editorRef.current;
+			if (!editor) return;
+
+			const model = editor.getModel();
+			if (!model) return;
+
+			const lineCount = model.getLineCount();
+			const currentLine = remoteCursor.position.lineNumber;
+
+			const lineDelta = Math.floor(Math.random() * 5) - 2; // -2 to +2
+			const newLine = Math.max(1, Math.min(lineCount, currentLine + lineDelta));
+
+			const maxColumn = model.getLineMaxColumn(newLine);
+			const columnDelta = Math.floor(Math.random() * 11) - 5; // -5 to +5
+			const newColumn = Math.max(
+				1,
+				Math.min(maxColumn, remoteCursor.position.column + columnDelta),
+			);
+
+			setRemoteCursor((prev) => ({
+				...prev,
+				position: { lineNumber: newLine, column: newColumn },
+			}));
+		}, 800); // Move every 800ms
+
+		return () => clearInterval(interval);
+	}, [remoteCursor.position]);
+
+	// Inject styles on mount and cleanup on unmount
+	useEffect(() => {
+		injectRemoteCursorStyles();
+
+		return () => {
+			// Cleanup: remove content widget when component unmounts
+			const editor = editorRef.current;
+			if (editor && remoteCursorWidgetRef.current) {
+				editor.removeContentWidget(remoteCursorWidgetRef.current);
+			}
+		};
+	}, []);
 
 	useEffect(() => {
 		if (editorRef.current) {
@@ -83,6 +300,7 @@ export function EditorPanel({ value, onChange, onRun }: EditorPanelProps) {
 		monaco: Monaco,
 	) => {
 		editorRef.current = editor;
+		monacoRef.current = monaco;
 
 		setupEditorTheme(monaco);
 		registerLanguageCompletions(monaco);
@@ -93,6 +311,11 @@ export function EditorPanel({ value, onChange, onRun }: EditorPanelProps) {
 				column: e.position.column,
 			});
 		});
+
+		// Initial remote cursor setup
+		setTimeout(() => {
+			updateRemoteCursorDecorations();
+		}, 100);
 
 		editor.focus();
 	};

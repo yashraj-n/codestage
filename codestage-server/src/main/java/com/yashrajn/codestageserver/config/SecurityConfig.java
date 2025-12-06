@@ -14,12 +14,21 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @EnableWebSecurity
 @Configuration
 public class SecurityConfig {
+    public static final String[] AUTHENTICATION_WHITELIST = {
+            "/",
+            "/oauth2/**",
+            "/error",
+            "/actuator/**",
+            "/swagger/**",
+            "/swagger-ui/**",
+            "/ws/**"
+    };
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http, JwtAuthFilter jwtAuthFilter, JwtSuccessHandler jwtHandler) throws Exception {
         http.authorizeHttpRequests(
                         req ->
-                                req.requestMatchers("/", "/login", "/error", "/actuator/**", "/swagger/**", "/swagger-ui/**").permitAll()
+                                req.requestMatchers(SecurityConfig.AUTHENTICATION_WHITELIST).permitAll()
                                         .anyRequest().authenticated()
                 ).httpBasic(AbstractHttpConfigurer::disable)
                 .formLogin(AbstractHttpConfigurer::disable)

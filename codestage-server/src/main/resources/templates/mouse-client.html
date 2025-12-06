@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mouse Movement Client</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: system-ui, -apple-system, sans-serif;
+        background: #0a0a0f;
+        color: #e4e4e7;
+        min-height: 100vh;
+        overflow: hidden;
+      }
+
+      .controls {
+        position: fixed;
+        top: 20px;
+        left: 20px;
+        z-index: 100;
+        display: flex;
+        gap: 12px;
+        align-items: center;
+      }
+
+      .mode-btn {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 500;
+        transition: all 0.2s ease;
+      }
+
+      .mode-btn.sender {
+        background: #22c55e;
+        color: #0a0a0f;
+      }
+
+      .mode-btn.sender:hover {
+        background: #16a34a;
+      }
+
+      .mode-btn.receiver {
+        background: #3b82f6;
+        color: white;
+      }
+
+      .mode-btn.receiver:hover {
+        background: #2563eb;
+      }
+
+      .mode-btn.active {
+        box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.3);
+      }
+
+      .status {
+        padding: 8px 16px;
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.1);
+        font-size: 13px;
+      }
+
+      .status.connected {
+        background: rgba(34, 197, 94, 0.2);
+        color: #22c55e;
+      }
+
+      .status.disconnected {
+        background: rgba(239, 68, 68, 0.2);
+        color: #ef4444;
+      }
+
+      .divider {
+        width: 1px;
+        height: 24px;
+        background: rgba(255, 255, 255, 0.2);
+        margin: 0 8px;
+      }
+
+      .controls input {
+        padding: 10px 14px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 8px;
+        background: rgba(0, 0, 0, 0.4);
+        color: #e4e4e7;
+        font-size: 14px;
+        width: 120px;
+        outline: none;
+      }
+
+      .controls input:focus {
+        border-color: #3b82f6;
+      }
+
+      .canvas-container {
+        width: 100vw;
+        height: 100vh;
+        position: relative;
+      }
+
+      #trackingArea {
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 100%);
+        position: relative;
+      }
+
+      .grid-overlay {
+        position: absolute;
+        inset: 0;
+        background-image: 
+          linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+        background-size: 50px 50px;
+        pointer-events: none;
+      }
+
+      .cursor-indicator {
+        position: fixed;
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        transform: translate(-50%, -50%);
+        pointer-events: none;
+        transition: opacity 0.3s ease;
+        z-index: 9999;
+      }
+
+      .cursor-indicator.local {
+        background: radial-gradient(circle, #22c55e 0%, transparent 70%);
+        box-shadow: 0 0 20px #22c55e;
+      }
+
+      .cursor-indicator.remote {
+        background: radial-gradient(circle, #3b82f6 0%, transparent 70%);
+        box-shadow: 0 0 20px #3b82f6;
+      }
+
+      .cursor-trail {
+        position: fixed;
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        pointer-events: none;
+        opacity: 0;
+        animation: fadeOut 0.5s ease-out forwards;
+        z-index: 9998;
+      }
+
+      .cursor-trail.local {
+        background: #22c55e;
+      }
+
+      .cursor-trail.remote {
+        background: #3b82f6;
+      }
+
+      @keyframes fadeOut {
+        0% {
+          opacity: 0.6;
+          transform: translate(-50%, -50%) scale(1);
+        }
+        100% {
+          opacity: 0;
+          transform: translate(-50%, -50%) scale(0.3);
+        }
+      }
+
+      .info-panel {
+        position: fixed;
+        bottom: 20px;
+        left: 20px;
+        padding: 16px 20px;
+        background: rgba(0, 0, 0, 0.6);
+        backdrop-filter: blur(10px);
+        border-radius: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        font-size: 13px;
+        min-width: 200px;
+      }
+
+      .info-row {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 8px;
+      }
+
+      .info-row:last-child {
+        margin-bottom: 0;
+      }
+
+      .info-label {
+        color: #71717a;
+      }
+
+      .info-value {
+        font-family: monospace;
+        color: #e4e4e7;
+      }
+
+      .connect-btn {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 8px;
+        background: #8b5cf6;
+        color: white;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 500;
+        transition: background 0.2s ease;
+      }
+
+      .connect-btn:hover {
+        background: #7c3aed;
+      }
+
+      .instructions {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        text-align: center;
+        color: #71717a;
+        font-size: 18px;
+        pointer-events: none;
+      }
+
+      .instructions.hidden {
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="controls">
+      <button class="mode-btn sender" id="senderBtn">📤 Sender</button>
+      <button class="mode-btn receiver" id="receiverBtn">📥 Receiver</button>
+      <div class="divider"></div>
+      <input type="text" id="sessionId" placeholder="Session ID" value="123" />
+      <button class="connect-btn" id="connectBtn">Connect</button>
+      <div class="status disconnected" id="status">Disconnected</div>
+    </div>
+
+    <div class="canvas-container">
+      <div id="trackingArea">
+        <div class="grid-overlay"></div>
+      </div>
+    </div>
+
+    <div class="cursor-indicator local" id="localCursor" style="display: none;"></div>
+    <div class="cursor-indicator remote" id="remoteCursor" style="display: none;"></div>
+
+    <div class="info-panel">
+      <div class="info-row">
+        <span class="info-label">Mode:</span>
+        <span class="info-value" id="modeDisplay">-</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Session:</span>
+        <span class="info-value" id="sessionDisplay">-</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Position:</span>
+        <span class="info-value" id="positionDisplay">-</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Messages/s:</span>
+        <span class="info-value" id="rateDisplay">0</span>
+      </div>
+    </div>
+
+    <div class="instructions" id="instructions">
+      Select a mode and connect to start
+    </div>
+
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"
+      integrity="sha512-iKDtgDyTHjAitUDdLljGhenhPwrbBfqTKWO1mkhSFH3A7blITC9MhYon6SjnMhp4o0rADGw9yAC6EW4t5a4K3g=="
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer"
+    ></script>
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.6.1/sockjs.min.js"
+      integrity="sha512-1QvjE7BtotQjkq8PxLeF6P46gEpBRXuskzIVgjFpekzFVF4yjRgrQvTG1MTOJ3yQgvTteKAcO7DSZI92+u/yZw=="
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer"
+    ></script>
+
+    <script>
+      const CONFIG = {
+        wsUrl: "http://localhost:3000/ws",
+        sendThrottle: 1,
+        interpolationDuration: 1,
+        trailInterval: 50,
+      };
+
+      let stompClient = null;
+      let currentMode = null;
+      let isConnected = false;
+      let sessionId = "123";
+      let lastSendTime = 0;
+      let messageCount = 0;
+      let lastRateUpdate = Date.now();
+
+      const targetPosition = { x: 0, y: 0 };
+      const currentPosition = { x: 0, y: 0 };
+      const velocity = { x: 0, y: 0 };
+      let animationFrameId = null;
+      let lastTrailTime = 0;
+
+      const elements = {
+        senderBtn: document.getElementById("senderBtn"),
+        receiverBtn: document.getElementById("receiverBtn"),
+        status: document.getElementById("status"),
+        sessionIdInput: document.getElementById("sessionId"),
+        connectBtn: document.getElementById("connectBtn"),
+        trackingArea: document.getElementById("trackingArea"),
+        localCursor: document.getElementById("localCursor"),
+        remoteCursor: document.getElementById("remoteCursor"),
+        modeDisplay: document.getElementById("modeDisplay"),
+        sessionDisplay: document.getElementById("sessionDisplay"),
+        positionDisplay: document.getElementById("positionDisplay"),
+        rateDisplay: document.getElementById("rateDisplay"),
+        instructions: document.getElementById("instructions"),
+      };
+
+      const updateStatus = (connected) => {
+        isConnected = connected;
+        elements.status.textContent = connected ? "Connected" : "Disconnected";
+        elements.status.className = `status ${connected ? "connected" : "disconnected"}`;
+        elements.connectBtn.textContent = connected ? "Disconnect" : "Connect";
+      };
+
+      const updateModeUI = () => {
+        elements.senderBtn.classList.toggle("active", currentMode === "sender");
+        elements.receiverBtn.classList.toggle("active", currentMode === "receiver");
+        elements.modeDisplay.textContent = currentMode ? currentMode.charAt(0).toUpperCase() + currentMode.slice(1) : "-";
+
+        if (currentMode === "sender") {
+          elements.localCursor.style.display = "block";
+          elements.remoteCursor.style.display = "none";
+          elements.instructions.textContent = "Move your mouse to send position data";
+        } else if (currentMode === "receiver") {
+          elements.localCursor.style.display = "none";
+          elements.remoteCursor.style.display = "block";
+          elements.instructions.textContent = "Waiting for mouse movement data...";
+        }
+
+        elements.instructions.classList.toggle("hidden", isConnected && currentMode);
+      };
+
+      const createTrail = (x, y, isRemote) => {
+        const trail = document.createElement("div");
+        trail.className = `cursor-trail ${isRemote ? "remote" : "local"}`;
+        trail.style.left = `${x}px`;
+        trail.style.top = `${y}px`;
+        document.body.appendChild(trail);
+
+        setTimeout(() => trail.remove(), 500);
+      };
+
+      const lerp = (start, end, factor) => start + (end - start) * factor;
+
+      const interpolatePosition = () => {
+        const smoothFactor = 0.1;
+
+        currentPosition.x = lerp(currentPosition.x, targetPosition.x, smoothFactor);
+        currentPosition.y = lerp(currentPosition.y, targetPosition.y, smoothFactor);
+
+        elements.remoteCursor.style.left = `${currentPosition.x}px`;
+        elements.remoteCursor.style.top = `${currentPosition.y}px`;
+
+        const now = Date.now();
+        if (now - lastTrailTime > CONFIG.trailInterval) {
+          createTrail(currentPosition.x, currentPosition.y, true);
+          lastTrailTime = now;
+        }
+
+        const distance = Math.sqrt(
+          Math.pow(targetPosition.x - currentPosition.x, 2) +
+          Math.pow(targetPosition.y - currentPosition.y, 2)
+        );
+
+        if (distance > 0.5) {
+          animationFrameId = requestAnimationFrame(interpolatePosition);
+        } else {
+          animationFrameId = null;
+        }
+      };
+
+      const handleMouseMove = (event) => {
+        if (currentMode !== "sender" || !isConnected) return;
+
+        const x = event.clientX;
+        const y = event.clientY;
+        const screenWidth = window.innerWidth;
+        const screenHeight = window.innerHeight;
+
+        const normalizedX = x / screenWidth;
+        const normalizedY = y / screenHeight;
+
+        elements.localCursor.style.left = `${x}px`;
+        elements.localCursor.style.top = `${y}px`;
+        elements.positionDisplay.textContent = `${normalizedX.toFixed(3)}, ${normalizedY.toFixed(3)}`;
+
+        const now = Date.now();
+        if (now - lastTrailTime > CONFIG.trailInterval) {
+          createTrail(x, y, false);
+          lastTrailTime = now;
+        }
+
+        if (now - lastSendTime >= CONFIG.sendThrottle) {
+          lastSendTime = now;
+          messageCount++;
+
+          stompClient.send(
+            `/app/${sessionId}/mouse`,
+            {},
+            JSON.stringify({
+              data: [normalizedX, normalizedY],
+              type: "MOUSE_MOVE",
+              sessionId: sessionId,
+            })
+          );
+        }
+      };
+
+      const handleReceivedPosition = (message) => {
+        if (currentMode !== "receiver") return;
+
+        const body = JSON.parse(message.body);
+        const [normalizedX, normalizedY] = body.data;
+
+        const x = normalizedX * window.innerWidth;
+        const y = normalizedY * window.innerHeight;
+
+        messageCount++;
+        targetPosition.x = x;
+        targetPosition.y = y;
+
+        elements.positionDisplay.textContent = `${normalizedX.toFixed(3)}, ${normalizedY.toFixed(3)}`;
+
+        if (!animationFrameId) {
+          animationFrameId = requestAnimationFrame(interpolatePosition);
+        }
+      };
+
+      const connect = () => {
+        sessionId = elements.sessionIdInput.value || "123";
+        elements.sessionDisplay.textContent = sessionId;
+
+        stompClient = Stomp.over(new SockJS(CONFIG.wsUrl));
+        stompClient.debug = null;
+
+        stompClient.connect(
+          { "x-auth-token": "123" },
+          (frame) => {
+            console.log("Connected:", frame);
+            updateStatus(true);
+
+            stompClient.subscribe(`/topic/messages/${sessionId}`, handleReceivedPosition);
+
+            if (currentMode) {
+              elements.instructions.classList.add("hidden");
+            }
+          },
+          (error) => {
+            console.error("Connection error:", error);
+            updateStatus(false);
+          }
+        );
+      };
+
+      const disconnect = () => {
+        if (stompClient) {
+          stompClient.disconnect(() => {
+            console.log("Disconnected");
+            updateStatus(false);
+          });
+        }
+      };
+
+      const updateMessageRate = () => {
+        const now = Date.now();
+        const elapsed = (now - lastRateUpdate) / 1000;
+
+        if (elapsed >= 1) {
+          const rate = Math.round(messageCount / elapsed);
+          elements.rateDisplay.textContent = rate;
+          messageCount = 0;
+          lastRateUpdate = now;
+        }
+      };
+
+      elements.senderBtn.addEventListener("click", () => {
+        currentMode = "sender";
+        updateModeUI();
+      });
+
+      elements.receiverBtn.addEventListener("click", () => {
+        currentMode = "receiver";
+        currentPosition.x = window.innerWidth / 2;
+        currentPosition.y = window.innerHeight / 2;
+        targetPosition.x = currentPosition.x;
+        targetPosition.y = currentPosition.y;
+        updateModeUI();
+      });
+
+      elements.connectBtn.addEventListener("click", () => {
+        if (isConnected) {
+          disconnect();
+        } else {
+          connect();
+        }
+      });
+
+      document.addEventListener("mousemove", handleMouseMove);
+
+      setInterval(updateMessageRate, 100);
+
+      updateModeUI();
+    </script>
+  </body>
+</html>
+

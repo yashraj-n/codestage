@@ -9,6 +9,50 @@ import { NotesPanel } from "./notes-panel";
 import { TerminalPanel } from "./terminal-panel";
 import { WorkspaceHeader } from "./workspace-header";
 
+interface RemoteCursorProps {
+	name: string;
+	color: string;
+	x: number;
+	y: number;
+}
+
+function RemoteCursor({ name, color, x, y }: RemoteCursorProps) {
+	return (
+		<div
+			className="pointer-events-none fixed z-9999 transition-all duration-150 ease-out"
+			style={{ left: x, top: y }}
+		>
+			{/* Cursor SVG */}
+			<svg
+				width="24"
+				height="24"
+				viewBox="0 0 24 24"
+				fill="none"
+				className="drop-shadow-lg"
+				style={{ filter: `drop-shadow(0 2px 4px ${color}40)` }}
+				aria-hidden="true"
+			>
+				<path
+					d="M5.5 3.21V20.8c0 .45.54.67.85.35l4.86-4.86a.5.5 0 0 1 .35-.15h6.87c.48 0 .72-.58.38-.92L6.35 2.85a.5.5 0 0 0-.85.36Z"
+					fill={color}
+					stroke="white"
+					strokeWidth="1.5"
+				/>
+			</svg>
+			{/* Name label */}
+			<div
+				className="ml-4 -mt-1 whitespace-nowrap rounded-md px-2 py-1 text-xs font-semibold text-white shadow-lg"
+				style={{
+					backgroundColor: color,
+					boxShadow: `0 4px 12px ${color}50`,
+				}}
+			>
+				{name}
+			</div>
+		</div>
+	);
+}
+
 export function WorkspaceLayout() {
 	const [isAdmin] = useState(true);
 	const [notes, setNotes] = useState(
@@ -25,6 +69,31 @@ console.log(solution([1, 2, 3]));`);
 	]);
 	const [events, setEvents] = useState<AssessmentEvent[]>([]);
 	const tabSwitchTimeRef = useRef<number | null>(null);
+
+	const [remoteCursorPos, setRemoteCursorPos] = useState({ x: 400, y: 300 });
+	const containerRef = useRef<HTMLDivElement>(null);
+
+	// Simulate random cursor movement (replace with WebSocket data later)
+	useEffect(() => {
+		const interval = setInterval(() => {
+			setRemoteCursorPos((prev) => {
+				// Get viewport dimensions
+				const maxX = window.innerWidth - 100;
+				const maxY = window.innerHeight - 100;
+
+				// Random movement with smooth transitions
+				const deltaX = (Math.random() - 0.5) * 120; // -60 to +60
+				const deltaY = (Math.random() - 0.5) * 80; // -40 to +40
+
+				const newX = Math.max(50, Math.min(maxX, prev.x + deltaX));
+				const newY = Math.max(80, Math.min(maxY, prev.y + deltaY));
+
+				return { x: newX, y: newY };
+			});
+		}, 600); // Update every 600ms
+
+		return () => clearInterval(interval);
+	}, []);
 
 	const addEvent = useCallback(
 		(type: AssessmentEventType, details?: string) => {
@@ -107,7 +176,20 @@ console.log(solution([1, 2, 3]));`);
 	};
 
 	return (
-		<div className="relative flex h-screen flex-col overflow-hidden bg-[#09090d]">
+		<div
+			ref={containerRef}
+			className="relative flex h-screen flex-col overflow-hidden bg-[#09090d]"
+		>
+			{/* Remote Cursor Overlay - shows candidate's cursor position */}
+			{isAdmin && (
+				<RemoteCursor
+					name="Candidate"
+					color="#f59e0b"
+					x={remoteCursorPos.x}
+					y={remoteCursorPos.y}
+				/>
+			)}
+
 			<div className="pointer-events-none absolute inset-0 overflow-hidden">
 				<div className="absolute -left-48 -top-48 h-[600px] w-[600px] rounded-full bg-violet-600/8 blur-[150px]" />
 				<div className="absolute -right-48 top-1/3 h-[500px] w-[500px] rounded-full bg-fuchsia-600/6 blur-[130px]" />

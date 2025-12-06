@@ -1,0 +1,7 @@
+FROM ghcr.io/engineer-man/piston
+
+# Copy and fix line endings for entrypoint script
+COPY piston-entrypoint.sh /piston-entrypoint.sh
+RUN sed -i 's/\r$//' /piston-entrypoint.sh && chmod +x /piston-entrypoint.sh
+
+ENTRYPOINT ["/piston-entrypoint.sh"]

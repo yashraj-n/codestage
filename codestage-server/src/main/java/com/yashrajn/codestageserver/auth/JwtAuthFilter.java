@@ -1,28 +1,44 @@
 package com.yashrajn.codestageserver.auth;
 
 import com.auth0.jwt.exceptions.JWTVerificationException;
+import com.yashrajn.codestageserver.config.SecurityConfig;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import org.springframework.http.HttpStatus;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
-import org.springframework.web.server.ResponseStatusException;
+
+import org.springframework.util.AntPathMatcher;
 
 import java.io.IOException;
 import java.util.List;
 
 @Component
+@Slf4j
 public class JwtAuthFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
+    private final AntPathMatcher pathMatcher = new AntPathMatcher();
 
     JwtAuthFilter(JwtService jwtService) {
         this.jwtService = jwtService;
+    }
+
+    @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) {
+        String path = request.getServletPath();
+        for (String publicEndpoint : SecurityConfig.AUTHENTICATION_WHITELIST) {
+            if (pathMatcher.match(publicEndpoint, path)) {
+                log.info("Access to {} is allowed without authentication", path);
+                return true;
+            }
+        }
+        return false;
     }
 
     @Override
@@ -36,10 +52,10 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         }
 
         String token = header.substring(7);
-        JwtUser user;
+        JwtAdmin user;
 
         try {
-            user = jwtService.validateJwtToken(token);
+            user = jwtService.validateUserJwtToken(token);
         } catch (JWTVerificationException err) {
             logger.error(err);
             throw new JwtAuthenticationException("Invalid or Expired JWT token");

@@ -1,4 +1,4 @@
-package com.yashrajn.codestageserver.models.dao;
+package com.yashrajn.codestageserver.models.dto;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotNull;

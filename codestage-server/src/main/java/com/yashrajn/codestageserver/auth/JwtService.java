@@ -13,26 +13,42 @@ public class JwtService {
 
     private final Algorithm algorithm;
     private final String issuer = "codestage";
+    private final String userClaimsKey = "user";
 
     public JwtService(@Value("${jwt.secret}") String jwtSecret) {
         this.algorithm = Algorithm.HMAC256(jwtSecret);
     }
 
-    public String generateJwtToken(String id, JwtUser user) {
-        return JWT.create()
-                .withIssuer(issuer)
-                .withSubject(id)
-                .withClaim("user", user.toJson())
-                .sign(algorithm);
-    }
-
-    public JwtUser validateJwtToken(String token) throws JWTVerificationException {
-        DecodedJWT decoded = JWT.require(algorithm)
+    private DecodedJWT decodeJwtToken(String token) {
+        return JWT.require(algorithm)
                 .withIssuer(issuer)
                 .build()
                 .verify(token);
-        String claimsJson = decoded.getClaim("user").asString();
-        return JsonSerializable.fromJson(claimsJson, JwtUser.class);
     }
+
+    private String generateJwt(String subject, String claimsKey, String claimsValue) {
+        return JWT
+                .create()
+                .withIssuer(issuer)
+                .withSubject(subject)
+                .withClaim(claimsKey, claimsValue)
+                .sign(algorithm);
+    }
+
+    public String generateUserJwtToken(String id, JwtAdmin user) {
+        return generateJwt(user.getUserId(), userClaimsKey, user.toJson());
+    }
+
+    public JwtAdmin validateUserJwtToken(String token) throws JWTVerificationException {
+        DecodedJWT decoded = decodeJwtToken(token);
+        String claimsJson = decoded.getClaim("user").asString();
+        return JsonSerializable.fromJson(claimsJson, JwtAdmin.class);
+    }
+
+    public String generateCandidateJwtToken(String sessionId, JwtCandidate candidate) {
+        return generateJwt(sessionId,"candidate", candidate.toJson());
+    }
+
+
 }
 

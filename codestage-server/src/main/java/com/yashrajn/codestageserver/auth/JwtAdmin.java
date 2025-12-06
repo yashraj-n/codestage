@@ -11,7 +11,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @Data
 @Schema(description = "User info stored in JWT")
-public class JwtUser implements JsonSerializable {
+public class JwtAdmin implements JsonSerializable {
     @Schema(description = "User ID")
     @NotNull
     private String userId;

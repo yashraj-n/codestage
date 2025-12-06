@@ -85,21 +85,16 @@
                                         Hi {{candidateName}},
                                     </h1>
 
-                                    <!-- BODY TEXT -->
-                                    <!-- Note: Keep this concise - candidates scan emails quickly -->
                                     <p style="margin: 0 0 24px 0; font-size: 16px; color: #a1a1aa; line-height: 1.7;">
                                         You've been invited to complete a coding assessment on CodeStage. This is your opportunity to demonstrate your technical skills in a real-time collaborative environment.
                                     </p>
 
-                                    <!-- INVITED BY BOX -->
-                                    <!-- Note: Adds personal touch and legitimacy to invitation -->
                                     <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin-bottom: 28px;">
                                         <tr>
                                             <td style="background-color: #27272a; border-radius: 10px; padding: 16px 20px;">
                                                 <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
                                                     <tr>
                                                         <td style="width: 40px; vertical-align: middle;">
-                                                            <!-- Note: Replace with actual profile image URL if available -->
                                                             <div style="width: 36px; height: 36px; background-color: #3f3f46; border-radius: 50%; text-align: center; line-height: 36px;">
                                                                 <span style="color: #a1a1aa; font-size: 14px; font-weight: 600;">{{inviterInitials}}</span>
                                                             </div>
@@ -114,12 +109,9 @@
                                         </tr>
                                     </table>
 
-                                    <!-- CTA BUTTON -->
-                                    <!-- Note: High contrast button ensures visibility and clicks -->
                                     <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin-bottom: 28px;">
                                         <tr>
                                             <td align="center">
-                                                <!-- Note: Use your tracking parameters in the link if needed -->
                                                 <a href="{{assessmentLink}}" style="display: inline-block; background-color: #fafafa; color: #09090b; font-size: 15px; font-weight: 600; text-decoration: none; padding: 14px 32px; border-radius: 8px; transition: background-color 0.2s;">
                                                     Start Assessment →
                                                 </a>
@@ -127,9 +119,6 @@
                                         </tr>
                                     </table>
 
-                                    <!-- ASSESSMENT NOTES/INSTRUCTIONS -->
-                                    <!-- Note: This section is conditionally rendered if {{assessmentNotes}} is provided -->
-                                    <!-- Remove this entire table if no notes are provided -->
                                     <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin-bottom: 28px;">
                                         <tr>
                                             <td style="background-color: #27272a; border-left: 3px solid #7c3aed; border-radius: 8px; padding: 18px 20px;">
@@ -137,13 +126,10 @@
                                                     📝 Additional Instructions
                                                 </p>
                                                 <div style="font-size: 14px; color: #d4d4d8; line-height: 1.6; white-space: pre-wrap;">{{assessmentNotes}}</div>
-                                                <!-- Note: white-space: pre-wrap preserves line breaks from the inviter -->
                                             </td>
                                         </tr>
                                     </table>
 
-                                    <!-- WARNING/URGENCY BOX -->
-                                    <!-- Note: Creates urgency while being informative, not aggressive -->
                                     <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
                                         <tr>
                                             <td style="background-color: rgba(251, 191, 36, 0.1); border: 1px solid rgba(251, 191, 36, 0.2); border-radius: 10px; padding: 16px 20px;">
@@ -170,18 +156,15 @@
                     </td>
                 </tr>
 
-                <!-- FOOTER -->
-                <!-- Note: Include support contact and legal requirements -->
+
                 <tr>
                     <td style="padding-top: 32px; text-align: center;">
                         <p style="margin: 0 0 8px 0; font-size: 13px; color: #52525b;">
                             Need help? Contact our support team.
-                            <!-- Note: Add your support email here, e.g., support@codestage.dev -->
                         </p>
                         <p style="margin: 0; font-size: 12px; color: #3f3f46;">
                             © 2025 CodeStage. All rights reserved.
                         </p>
-                        <!-- Note: Add unsubscribe link if required by email regulations (CAN-SPAM, GDPR) -->
                     </td>
                 </tr>
 
@@ -190,34 +173,6 @@
     </tr>
 </table>
 
-<!--
-  TESTING CHECKLIST:
-  □ Test in Gmail (web and mobile)
-  □ Test in Outlook (desktop and web)
-  □ Test in Apple Mail (macOS and iOS)
-  □ Test in Yahoo Mail
-  □ Verify all template variables are replaced
-  □ Check link expiration timer functionality
-  □ Test button tracking (if implemented)
-  □ Verify mobile responsiveness
-  □ Test with long candidate names
-  □ Test with long inviter names
-  □ Check dark mode compatibility
 
-  INTEGRATION TIPS:
-  - Use a transactional email service (SendGrid, Mailgun, AWS SES)
-  - Implement proper SPF, DKIM, and DMARC records
-  - Add email open tracking (transparent pixel)
-  - Add click tracking for the CTA button
-  - Log email delivery status for debugging
-  - Set up bounce and complaint handling
-
-  OPTIONAL ENHANCEMENTS:
-  - Add assessment duration/difficulty level
-  - Include company logo of hiring organization
-  - Add preview text optimization
-  - Include assessment preparation tips link
-  - Add social proof (testimonials, candidate success rate)
--->
 </body>
 </html>

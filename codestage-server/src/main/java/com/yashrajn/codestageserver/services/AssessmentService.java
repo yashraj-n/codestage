@@ -1,7 +1,7 @@
 package com.yashrajn.codestageserver.services;
 
-import com.yashrajn.codestageserver.auth.JwtUser;
-import com.yashrajn.codestageserver.models.dao.CreateAssessmentDTO;
+import com.yashrajn.codestageserver.auth.JwtAdmin;
+import com.yashrajn.codestageserver.models.dto.CreateAssessmentDTO;
 import com.yashrajn.codestageserver.models.entity.Assessment;
 import com.yashrajn.codestageserver.repository.AssessmentRepository;
 import jakarta.mail.MessagingException;
@@ -29,7 +29,7 @@ public class AssessmentService {
     }
 
     @Transactional
-    public void createAssessment(CreateAssessmentDTO payload, JwtUser user) {
+    public void createAssessment(CreateAssessmentDTO payload, JwtAdmin user) {
         Assessment assessment = Assessment.builder()
                 .adminId(user.getUserId())
                 .candidateName(payload.candidateName())
@@ -42,7 +42,7 @@ public class AssessmentService {
         repo.save(assessment);
         log.info("Created Assessment: {}", assessment);
         try {
-            mailService.sendEmailToCandidate(payload, user);
+            mailService.sendEmailToCandidate(payload, user, String.valueOf(assessment.getId()));
             log.info("Email Sent to Candidate: {}", payload.candidateEmail());
         } catch (IOException e) {
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to Read Template: " + e.getMessage());
