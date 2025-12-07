@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as TestRouteImport } from './routes/test'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as IndexRouteImport } from './routes/index'
@@ -18,6 +19,11 @@ import { Route as AuthRedirectRouteImport } from './routes/auth/redirect'
 import { Route as AdminDashboardRouteImport } from './routes/admin/dashboard'
 import { Route as AdminAssessmentIdRouteImport } from './routes/admin/assessment/$id'
 
+const TestRoute = TestRouteImport.update({
+  id: '/test',
+  path: '/test',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const TermsRoute = TermsRouteImport.update({
   id: '/terms',
   path: '/terms',
@@ -63,6 +69,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/privacy': typeof PrivacyRoute
   '/terms': typeof TermsRoute
+  '/test': typeof TestRoute
   '/admin/dashboard': typeof AdminDashboardRoute
   '/auth/redirect': typeof AuthRedirectRoute
   '/admin': typeof AdminIndexRoute
@@ -73,6 +80,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/privacy': typeof PrivacyRoute
   '/terms': typeof TermsRoute
+  '/test': typeof TestRoute
   '/admin/dashboard': typeof AdminDashboardRoute
   '/auth/redirect': typeof AuthRedirectRoute
   '/admin': typeof AdminIndexRoute
@@ -84,6 +92,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/privacy': typeof PrivacyRoute
   '/terms': typeof TermsRoute
+  '/test': typeof TestRoute
   '/admin/dashboard': typeof AdminDashboardRoute
   '/auth/redirect': typeof AuthRedirectRoute
   '/admin/': typeof AdminIndexRoute
@@ -96,6 +105,7 @@ export interface FileRouteTypes {
     | '/'
     | '/privacy'
     | '/terms'
+    | '/test'
     | '/admin/dashboard'
     | '/auth/redirect'
     | '/admin'
@@ -106,6 +116,7 @@ export interface FileRouteTypes {
     | '/'
     | '/privacy'
     | '/terms'
+    | '/test'
     | '/admin/dashboard'
     | '/auth/redirect'
     | '/admin'
@@ -116,6 +127,7 @@ export interface FileRouteTypes {
     | '/'
     | '/privacy'
     | '/terms'
+    | '/test'
     | '/admin/dashboard'
     | '/auth/redirect'
     | '/admin/'
@@ -127,6 +139,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   PrivacyRoute: typeof PrivacyRoute
   TermsRoute: typeof TermsRoute
+  TestRoute: typeof TestRoute
   AdminDashboardRoute: typeof AdminDashboardRoute
   AuthRedirectRoute: typeof AuthRedirectRoute
   AdminIndexRoute: typeof AdminIndexRoute
@@ -136,6 +149,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/test': {
+      id: '/test'
+      path: '/test'
+      fullPath: '/test'
+      preLoaderRoute: typeof TestRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/terms': {
       id: '/terms'
       path: '/terms'
@@ -199,6 +219,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   PrivacyRoute: PrivacyRoute,
   TermsRoute: TermsRoute,
+  TestRoute: TestRoute,
   AdminDashboardRoute: AdminDashboardRoute,
   AuthRedirectRoute: AuthRedirectRoute,
   AdminIndexRoute: AdminIndexRoute,

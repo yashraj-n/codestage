@@ -460,12 +460,12 @@
         stompClient.debug = null;
 
         stompClient.connect(
-          { "x-auth-token": "123" },
+          { "Authorization": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJjb2Rlc3RhZ2UiLCJzdWIiOiIxMCIsImNhbmRpZGF0ZSI6IntcImVtYWlsXCI6XCJ5bm5hcmtlNTJAZ21haWwuY29tXCIsXCJuYW1lXCI6XCJjb3NpXCIsXCJpc0FkbWluXCI6ZmFsc2UsXCJzZXNzaW9uSWRcIjpcIjEwXCJ9In0.Oi5GymWuiRN2XPOoMdhuxUQi_KOeueX1JHKWzFPWO7Q" },
           (frame) => {
             console.log("Connected:", frame);
             updateStatus(true);
 
-            stompClient.subscribe(`/topic/messages/${sessionId}`, handleReceivedPosition);
+            stompClient.subscribe(`/topic/${sessionId}`, handleReceivedPosition);
 
             if (currentMode) {
               elements.instructions.classList.add("hidden");
@@ -476,6 +476,11 @@
             updateStatus(false);
           }
         );
+
+          stompClient.onStompError = function (frame) {
+              console.error("Broker error:", frame.headers.message);
+              console.error("Details:", frame.body);
+          };
       };
 
       const disconnect = () => {

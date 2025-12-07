@@ -7,6 +7,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
@@ -14,6 +15,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import org.springframework.util.AntPathMatcher;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.io.IOException;
 import java.util.List;
@@ -34,7 +36,6 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         String path = request.getServletPath();
         for (String publicEndpoint : SecurityConfig.AUTHENTICATION_WHITELIST) {
             if (pathMatcher.match(publicEndpoint, path)) {
-                log.info("Access to {} is allowed without authentication", path);
                 return true;
             }
         }
@@ -57,13 +58,17 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         try {
             user = jwtService.validateUserJwtToken(token);
         } catch (JWTVerificationException err) {
-            logger.error(err);
-            throw new JwtAuthenticationException("Invalid or Expired JWT token");
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Unauthorized: Invalid or Expired JWT token");
+        }
+
+        if (user == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Unauthorized: Invalid or Expired JWT token");
         }
 
         UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(user, null, List.of());
 
         auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+        log.info("Setting Auth for url {} with user {}", request.getRequestURI(), user);
         SecurityContextHolder.getContext().setAuthentication(auth);
         chain.doFilter(request, response);
     }

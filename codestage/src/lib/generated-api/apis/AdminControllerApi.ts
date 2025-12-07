@@ -15,11 +15,11 @@
 
 import * as runtime from '../runtime';
 import type {
-  JwtUser,
+  JwtAdmin,
 } from '../models/index';
 import {
-    JwtUserFromJSON,
-    JwtUserToJSON,
+    JwtAdminFromJSON,
+    JwtAdminToJSON,
 } from '../models/index';
 
 /**
@@ -29,7 +29,7 @@ export class AdminControllerApi extends runtime.BaseAPI {
 
     /**
      */
-    async getAdminRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<JwtUser>> {
+    async getAdminRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<JwtAdmin>> {
         const queryParameters: any = {};
 
         const headerParameters: runtime.HTTPHeaders = {};
@@ -52,12 +52,12 @@ export class AdminControllerApi extends runtime.BaseAPI {
             query: queryParameters,
         }, initOverrides);
 
-        return new runtime.JSONApiResponse(response, (jsonValue) => JwtUserFromJSON(jsonValue));
+        return new runtime.JSONApiResponse(response, (jsonValue) => JwtAdminFromJSON(jsonValue));
     }
 
     /**
      */
-    async getAdmin(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<JwtUser> {
+    async getAdmin(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<JwtAdmin> {
         const response = await this.getAdminRaw(initOverrides);
         return await response.value();
     }

@@ -1,8 +1,11 @@
 "use client";
 
+import type { Client, Message } from "@stomp/stompjs";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import type { AssessmentEvent, AssessmentEventType } from "@/lib/assessments";
+import type { JwtCandidate } from "@/lib/generated-api";
+import { createStompMessage, type StompMessage, StompMessageType } from "@/lib/ws-helper";
 import { EditorPanel } from "./editor-panel";
 import { EventsPanel } from "./events-panel";
 import { NotesPanel } from "./notes-panel";
@@ -14,6 +17,11 @@ interface RemoteCursorProps {
 	color: string;
 	x: number;
 	y: number;
+}
+
+interface WorkspaceLayoutProps {
+	user: JwtCandidate;
+	stompClient: Client;
 }
 
 function RemoteCursor({ name, color, x, y }: RemoteCursorProps) {
@@ -53,11 +61,8 @@ function RemoteCursor({ name, color, x, y }: RemoteCursorProps) {
 	);
 }
 
-export function WorkspaceLayout() {
-	const [isAdmin] = useState(true);
-	const [notes, setNotes] = useState(
-		"## Interview Notes\n\n- Candidate: John Doe\n- Position: Senior Frontend Engineer\n- Date: Nov 26, 2025\n\n### Questions\n\n1. Implement array flatten\n2. Discuss React patterns",
-	);
+export function WorkspaceLayout({ user, stompClient }: WorkspaceLayoutProps) {
+	const [notes, setNotes] = useState("Only admin can edit these notes");
 	const [code, setCode] = useState(`function solution(arr) {
   return arr.flat(Infinity);
 }
@@ -73,27 +78,39 @@ console.log(solution([1, 2, 3]));`);
 	const [remoteCursorPos, setRemoteCursorPos] = useState({ x: 400, y: 300 });
 	const containerRef = useRef<HTMLDivElement>(null);
 
-	// Simulate random cursor movement (replace with WebSocket data later)
 	useEffect(() => {
 		const interval = setInterval(() => {
 			setRemoteCursorPos((prev) => {
-				// Get viewport dimensions
 				const maxX = window.innerWidth - 100;
 				const maxY = window.innerHeight - 100;
 
-				// Random movement with smooth transitions
-				const deltaX = (Math.random() - 0.5) * 120; // -60 to +60
-				const deltaY = (Math.random() - 0.5) * 80; // -40 to +40
+				const deltaX = (Math.random() - 0.5) * 120;
+				const deltaY = (Math.random() - 0.5) * 80;
 
 				const newX = Math.max(50, Math.min(maxX, prev.x + deltaX));
 				const newY = Math.max(80, Math.min(maxY, prev.y + deltaY));
 
 				return { x: newX, y: newY };
 			});
-		}, 600); // Update every 600ms
+		}, 600);
 
 		return () => clearInterval(interval);
 	}, []);
+
+	useEffect(() => {
+		if (!user.isAdmin) {
+			console.log(`Subscribing to notes for session: ${user.sessionId}`);
+			stompClient.subscribe(
+				`/topic/${user.sessionId}/notes`,
+				(message: Message) => {
+					const messageData = JSON.parse(message.body) as StompMessage<string>;
+					if (messageData.type === StompMessageType.NOTES) {
+						setNotes(messageData.data);
+					}
+				},
+			);
+		}
+	}, [stompClient.subscribe, user.isAdmin, user.sessionId]);
 
 	const addEvent = useCallback(
 		(type: AssessmentEventType, details?: string) => {
@@ -108,12 +125,10 @@ console.log(solution([1, 2, 3]));`);
 		[],
 	);
 
-	// Track session start
 	useEffect(() => {
 		addEvent("session_start");
 	}, [addEvent]);
 
-	// Track tab visibility changes (tab switch)
 	useEffect(() => {
 		const handleVisibilityChange = () => {
 			if (document.hidden) {
@@ -135,7 +150,6 @@ console.log(solution([1, 2, 3]));`);
 			document.removeEventListener("visibilitychange", handleVisibilityChange);
 	}, [addEvent]);
 
-	// Track paste events
 	useEffect(() => {
 		const handlePaste = (e: ClipboardEvent) => {
 			const pastedText = e.clipboardData?.getData("text") || "";
@@ -146,7 +160,6 @@ console.log(solution([1, 2, 3]));`);
 		return () => document.removeEventListener("paste", handlePaste);
 	}, [addEvent]);
 
-	// Track copy events
 	useEffect(() => {
 		const handleCopy = () => {
 			const selection = window.getSelection();
@@ -171,6 +184,19 @@ console.log(solution([1, 2, 3]));`);
 		]);
 	};
 
+	const handleEditNotes = (notes: string) => {
+		setNotes(notes);
+		stompClient.publish({
+			destination: `/app/${user.sessionId}/notes`,
+			body: createStompMessage(
+				notes,
+				StompMessageType.NOTES,
+				user.sessionId ?? "",
+			),
+		});
+		console.log(`Sent notes to server: ${notes}`);
+	};
+
 	const handleClearTerminal = () => {
 		setTerminalOutput(["CodeStage Terminal v1.0"]);
 	};
@@ -181,7 +207,7 @@ console.log(solution([1, 2, 3]));`);
 			className="relative flex h-screen flex-col overflow-hidden bg-[#09090d]"
 		>
 			{/* Remote Cursor Overlay - shows candidate's cursor position */}
-			{isAdmin && (
+			{user.isAdmin && (
 				<RemoteCursor
 					name="Candidate"
 					color="#f59e0b"
@@ -196,18 +222,22 @@ console.log(solution([1, 2, 3]));`);
 				<div className="absolute bottom-0 left-1/3 h-[400px] w-[400px] rounded-full bg-purple-600/5 blur-[120px]" />
 			</div>
 
-			<div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.01)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.01)_1px,transparent_1px)] bg-[size:64px_64px] [mask-image:radial-gradient(ellipse_at_center,black_30%,transparent_80%)]" />
+			<div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.01)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.01)_1px,transparent_1px)] bg-size-[64px_64px] mask-[radial-gradient(ellipse_at_center,black_30%,transparent_80%)]" />
 
-			<WorkspaceHeader isAdmin={isAdmin} />
+			<WorkspaceHeader isAdmin={user.isAdmin ?? false} />
 
 			<div className="relative z-10 flex-1 overflow-hidden p-3">
 				<PanelGroup direction="horizontal" className="h-full gap-3">
 					<Panel defaultSize={15} minSize={12} maxSize={25}>
-						<NotesPanel value={notes} onChange={setNotes} isAdmin={isAdmin} />
+						<NotesPanel
+							value={notes}
+							onChange={handleEditNotes}
+							isAdmin={user.isAdmin ?? false}
+						/>
 					</Panel>
 
 					<PanelResizeHandle className="group relative w-1.5 rounded-full transition-all hover:w-2 hover:bg-violet-500/20 active:bg-violet-500/30">
-						<div className="absolute inset-y-4 left-1/2 w-px -translate-x-1/2 rounded-full bg-white/[0.06] transition-colors group-hover:bg-violet-500/50 group-active:bg-violet-500" />
+						<div className="absolute inset-y-4 left-1/2 w-px -translate-x-1/2 rounded-full bg-white/6 transition-colors group-hover:bg-violet-500/50 group-active:bg-violet-500" />
 					</PanelResizeHandle>
 
 					<Panel defaultSize={40} minSize={30}>
@@ -219,7 +249,7 @@ console.log(solution([1, 2, 3]));`);
 					</Panel>
 
 					<PanelResizeHandle className="group relative w-1.5 rounded-full transition-all hover:w-2 hover:bg-fuchsia-500/20 active:bg-fuchsia-500/30">
-						<div className="absolute inset-y-4 left-1/2 w-px -translate-x-1/2 rounded-full bg-white/[0.06] transition-colors group-hover:bg-fuchsia-500/50 group-active:bg-fuchsia-500" />
+						<div className="absolute inset-y-4 left-1/2 w-px -translate-x-1/2 rounded-full bg-white/6 transition-colors group-hover:bg-fuchsia-500/50 group-active:bg-fuchsia-500" />
 					</PanelResizeHandle>
 
 					<Panel defaultSize={30} minSize={15} maxSize={40}>
@@ -229,14 +259,14 @@ console.log(solution([1, 2, 3]));`);
 						/>
 					</Panel>
 
-					{isAdmin && (
+					{user.isAdmin && (
 						<>
 							<PanelResizeHandle className="group relative w-1.5 rounded-full transition-all hover:w-2 hover:bg-rose-500/20 active:bg-rose-500/30">
-								<div className="absolute inset-y-4 left-1/2 w-px -translate-x-1/2 rounded-full bg-white/[0.06] transition-colors group-hover:bg-rose-500/50 group-active:bg-rose-500" />
+								<div className="absolute inset-y-4 left-1/2 w-px -translate-x-1/2 rounded-full bg-white/6 transition-colors group-hover:bg-rose-500/50 group-active:bg-rose-500" />
 							</PanelResizeHandle>
 
 							<Panel defaultSize={15} minSize={12} maxSize={25}>
-								<EventsPanel events={events} isAdmin={isAdmin} />
+								<EventsPanel events={events} isAdmin={user.isAdmin} />
 							</Panel>
 						</>
 					)}

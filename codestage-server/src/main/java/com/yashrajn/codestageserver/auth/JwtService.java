@@ -49,6 +49,12 @@ public class JwtService {
         return generateJwt(sessionId,"candidate", candidate.toJson());
     }
 
+    public JwtCandidate validateCandidateJwtToken(String token) throws JWTVerificationException {
+        DecodedJWT decoded = decodeJwtToken(token);
+        String claimsJson = decoded.getClaim("candidate").asString();
+        return JsonSerializable.fromJson(claimsJson, JwtCandidate.class);
+    }
+
 
 }
 

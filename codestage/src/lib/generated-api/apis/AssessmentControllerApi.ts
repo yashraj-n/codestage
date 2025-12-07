@@ -13,20 +13,27 @@
  */
 
 
+import * as runtime from '../runtime';
 import type {
   Assessment,
   CreateAssessmentDTO,
+  JwtCandidate,
 } from '../models/index';
 import {
     AssessmentFromJSON,
     AssessmentToJSON,
     CreateAssessmentDTOFromJSON,
     CreateAssessmentDTOToJSON,
+    JwtCandidateFromJSON,
+    JwtCandidateToJSON,
 } from '../models/index';
-import * as runtime from '../runtime';
 
 export interface CreateAssessmentRequest {
     createAssessmentDTO: CreateAssessmentDTO;
+}
+
+export interface CreateJoinTokenRequest {
+    sessionId: string;
 }
 
 /**
@@ -36,7 +43,34 @@ export class AssessmentControllerApi extends runtime.BaseAPI {
 
     /**
      */
-    async createAssessmentRaw(requestParameters: CreateAssessmentRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<object>> {
+    async checkCandidateTokenRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<JwtCandidate>> {
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/assessment/check-token`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => JwtCandidateFromJSON(jsonValue));
+    }
+
+    /**
+     */
+    async checkCandidateToken(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<JwtCandidate> {
+        const response = await this.checkCandidateTokenRaw(initOverrides);
+        return await response.value();
+    }
+
+    /**
+     */
+    async createAssessmentRaw(requestParameters: CreateAssessmentRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<string>> {
         if (requestParameters['createAssessmentDTO'] == null) {
             throw new runtime.RequiredError(
                 'createAssessmentDTO',
@@ -61,13 +95,56 @@ export class AssessmentControllerApi extends runtime.BaseAPI {
             body: CreateAssessmentDTOToJSON(requestParameters['createAssessmentDTO']),
         }, initOverrides);
 
-        return new runtime.JSONApiResponse<any>(response);
+        if (this.isJsonMime(response.headers.get('content-type'))) {
+            return new runtime.JSONApiResponse<string>(response);
+        } else {
+            return new runtime.TextApiResponse(response) as any;
+        }
     }
 
     /**
      */
-    async createAssessment(requestParameters: CreateAssessmentRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<object> {
+    async createAssessment(requestParameters: CreateAssessmentRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<string> {
         const response = await this.createAssessmentRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     */
+    async createJoinTokenRaw(requestParameters: CreateJoinTokenRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<string>> {
+        if (requestParameters['sessionId'] == null) {
+            throw new runtime.RequiredError(
+                'sessionId',
+                'Required parameter "sessionId" was null or undefined when calling createJoinToken().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/assessment/join/{sessionId}`;
+        urlPath = urlPath.replace(`{${"sessionId"}}`, encodeURIComponent(String(requestParameters['sessionId'])));
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        if (this.isJsonMime(response.headers.get('content-type'))) {
+            return new runtime.JSONApiResponse<string>(response);
+        } else {
+            return new runtime.TextApiResponse(response) as any;
+        }
+    }
+
+    /**
+     */
+    async createJoinToken(requestParameters: CreateJoinTokenRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<string> {
+        const response = await this.createJoinTokenRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

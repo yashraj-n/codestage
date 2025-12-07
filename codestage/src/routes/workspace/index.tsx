@@ -1,10 +1,112 @@
+import { type Client, type IFrame, Stomp } from "@stomp/stompjs";
 import { createFileRoute } from "@tanstack/react-router";
+import { useEffect, useRef, useState } from "react";
+import SockJS from "sockjs-client";
+import { AuthLoadingPage, InvalidTokenPage } from "@/components/invalid-token";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
+import { assessmentsApi } from "@/lib/api-client";
+import type { JwtCandidate } from "@/lib/generated-api/models/JwtCandidate";
+import { useAuthTokenStore } from "@/stores/auth-store";
+
+interface WorkspaceSearch {
+	token?: string;
+}
 
 export const Route = createFileRoute("/workspace/")({
+	validateSearch: (search: Record<string, unknown>): WorkspaceSearch => {
+		return {
+			token: typeof search.token === "string" ? search.token : undefined,
+		};
+	},
 	component: WorkspacePage,
 });
 
 export default function WorkspacePage() {
-	return <WorkspaceLayout />;
+	const { token } = Route.useSearch();
+	const setToken = useAuthTokenStore((state) => state.setToken);
+
+	const [isLoading, setIsLoading] = useState(true);
+	const [error, setError] = useState<string | null>(null);
+	const [candidate, setCandidate] = useState<JwtCandidate | null>(null);
+	const stompClientRef = useRef<Client | null>(null);
+
+	useEffect(() => {
+		if (!token) {
+			setError("No token provided");
+			setIsLoading(false);
+			return;
+		}
+
+		setToken(token);
+
+		const verifyAndConnect = async () => {
+			try {
+				const validToken = await assessmentsApi.checkCandidateToken({
+					headers: {
+						Authorization: token,
+					},
+				});
+				if (!validToken) {
+					setError("Invalid token");
+					setIsLoading(false);
+					return;
+				}
+				setCandidate(validToken);
+				console.log("Candidate:", validToken);
+				const stompClient = Stomp.over(
+					() => new SockJS(`${import.meta.env.VITE_PUBLIC_SERVER_URL}/ws`),
+				);
+				stompClient.connect(
+					{ Authorization: token },
+					(frame: IFrame) => {
+						console.log("Connected:", frame);
+						stompClientRef.current = stompClient;
+						setIsLoading(false);
+					},
+					(error: unknown) => {
+						console.error("Error connecting to WebSocket:", error);
+						setError("Failed to connect to WebSocket");
+						setIsLoading(false);
+					},
+				);
+
+				stompClient.onWebSocketError = (error: unknown) => {
+					console.error("WebSocket error:", error);
+					setError("Failed to connect to WebSocket");
+					setIsLoading(false);
+				};
+
+				stompClient.onStompError = (frame) => {
+					console.error("Broker error:", frame.headers.message);
+					console.error("Details:", frame.body);
+				};
+			} catch (error) {
+				console.error("Error verifying and connecting to WebSocket:", error);
+				setError("Failed to connect to WebSocket");
+				setIsLoading(false);
+			}
+		};
+
+		verifyAndConnect();
+
+		return () => {
+			if (stompClientRef.current?.active) {
+				stompClientRef.current.deactivate();
+			}
+		};
+	}, [token, setToken]);
+
+	if (isLoading) {
+		return <AuthLoadingPage />;
+	}
+
+	if (error || !candidate) {
+		return <InvalidTokenPage />;
+	}
+
+	if (!stompClientRef.current) {
+		return <AuthLoadingPage />;
+	}
+
+	return <WorkspaceLayout stompClient={stompClientRef.current} user={candidate} />;
 }

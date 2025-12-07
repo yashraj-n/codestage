@@ -23,12 +23,13 @@ public class WebSocketEventListener {
 
     @EventListener
     public void handleWebSocketDisconnectListener(SessionDisconnectEvent event) {
-      log.info("Received a disconnect event {}", event);
+      log.debug("Received a disconnect event {}", event);
     }
 
     @EventListener
     public void handleWebSocketConnectListener(SessionConnectEvent event) {
-        log.info("Received a new web socket connection {} ", event);
+        StompHeaderAccessor accessor = StompHeaderAccessor.wrap(event.getMessage());
+        log.debug("User Principal: {}", accessor.getUser());
     }
 
 

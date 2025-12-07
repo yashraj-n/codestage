@@ -10,7 +10,7 @@ All URIs are relative to *http://localhost:3000*
 
 ## getAdmin
 
-> JwtUser getAdmin()
+> JwtAdmin getAdmin()
 
 
 
@@ -49,7 +49,7 @@ This endpoint does not need any parameter.
 
 ### Return type
 
-[**JwtUser**](JwtUser.md)
+[**JwtAdmin**](JwtAdmin.md)
 
 ### Authorization
 

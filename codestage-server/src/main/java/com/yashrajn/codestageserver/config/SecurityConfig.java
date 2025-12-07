@@ -21,7 +21,8 @@ public class SecurityConfig {
             "/actuator/**",
             "/swagger/**",
             "/swagger-ui/**",
-            "/ws/**"
+            "/ws/**",
+            "/assessment/check-token"
     };
 
     @Bean

@@ -8,6 +8,9 @@ import { fileURLToPath, URL } from 'node:url'
 
 // https://vitejs.dev/config/
 export default defineConfig({
+  define:{
+    global: 'window',
+  },
   plugins: [
     devtools(),
     tanstackRouter({

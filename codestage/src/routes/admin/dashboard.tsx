@@ -44,7 +44,10 @@ import {
 } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import { assessmentsApi } from "@/lib/api-client";
-import type { Assessment, CreateAssessmentDTO } from "@/lib/generated-api/models";
+import type {
+	Assessment,
+	CreateAssessmentDTO,
+} from "@/lib/generated-api/models";
 import { useAuthStore } from "@/stores/auth-store";
 
 export const Route = createFileRoute("/admin/dashboard")({
@@ -121,6 +124,17 @@ function AdminDashboard() {
 		setTimeout(() => setCopiedId(null), 2000);
 	};
 
+	const handleJoin = async (assessment: Assessment) => {
+		const joinToken = await assessmentsApi.createJoinToken({
+			sessionId: assessment.id?.toString() ?? "",
+		});
+		if (joinToken) {
+			window.open(`${window.location.origin}/workspace?token=${joinToken}`, "_blank");
+		} else {
+			alert("Failed to create join link");
+		}
+	};
+
 	const handleSignOut = () => {
 		signOut();
 		navigate({ to: "/admin" });
@@ -194,7 +208,9 @@ function AdminDashboard() {
 						Failed to load assessments
 					</h2>
 					<p className="mt-1 text-sm text-muted-foreground">
-						{error instanceof Error ? error.message : "An unexpected error occurred"}
+						{error instanceof Error
+							? error.message
+							: "An unexpected error occurred"}
 					</p>
 				</div>
 				<Button
@@ -336,7 +352,9 @@ function AdminDashboard() {
 											/>
 										</div>
 										<div className="space-y-2">
-											<Label htmlFor={`${formId}-notes`}>Notes (Optional)</Label>
+											<Label htmlFor={`${formId}-notes`}>
+												Notes (Optional)
+											</Label>
 											<Textarea
 												id={`${formId}-notes`}
 												placeholder="Add any notes for this assessment..."
@@ -492,27 +510,37 @@ function AdminDashboard() {
 															</Link>
 														</Button>
 													) : (
-														<Button
-															variant="ghost"
-															size="icon"
-															className="h-8 w-8"
-															onClick={() =>
-																assessment.id &&
-																handleCopyLink(
-																	assessment.id,
-																	`${window.location.origin}/assessment/${assessment.id}`,
-																)
-															}
-															title="Copy link"
-															aria-label="Copy assessment link"
-															tabIndex={0}
-														>
-															{copiedId === assessment.id ? (
-																<Check className="h-4 w-4 text-emerald-500" />
-															) : (
-																<Copy className="h-4 w-4" />
-															)}
-														</Button>
+														<>
+															<Button
+																variant="outline"
+																size="sm"
+																className="h-8"
+																onClick={() => handleJoin(assessment)}
+															>
+																Join
+															</Button>
+															<Button
+																variant="ghost"
+																size="icon"
+																className="h-8 w-8"
+																onClick={() =>
+																	assessment.id &&
+																	handleCopyLink(
+																		assessment.id,
+																		`${window.location.origin}/assessment/${assessment.id}`,
+																	)
+																}
+																title="Copy link"
+																aria-label="Copy assessment link"
+																tabIndex={0}
+															>
+																{copiedId === assessment.id ? (
+																	<Check className="h-4 w-4 text-emerald-500" />
+																) : (
+																	<Copy className="h-4 w-4" />
+																)}
+															</Button>
+														</>
 													)}
 												</div>
 											</TableCell>

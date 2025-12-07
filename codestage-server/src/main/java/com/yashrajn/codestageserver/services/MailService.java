@@ -41,16 +41,24 @@ public class MailService {
     public void sendEmailToCandidate(CreateAssessmentDTO assessmentDTO, JwtAdmin user, String sessionId) throws MessagingException, IOException {
         MimeMessage message = mailSender.createMimeMessage();
         MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
-        String joinToken = jwtService.generateCandidateJwtToken(sessionId, new JwtCandidate(assessmentDTO.candidateEmail(), assessmentDTO.candidateName()));
-        String inviteTemplateHTML = renderInviteTemplate(assessmentDTO, user, clientUrl + "/join?token=" + joinToken);
+        String joinToken = jwtService.generateCandidateJwtToken(sessionId, new JwtCandidate(assessmentDTO.candidateEmail(),
+                assessmentDTO.candidateName(),
+                false,
+                sessionId));
+        String joinLink = clientUrl + "/workspace?token=" + joinToken;
+        String inviteTemplateHTML = renderInviteTemplate(assessmentDTO, user, joinLink);
+        String plainText = "You have been invited to a CodeStage Assessment by "
+                + user.getName() +
+                ".\n Click the link below to join the assessment: \n\n " +
+                joinLink
+                + "\n\n Notes from the inviter: \n\n " + assessmentDTO.assessmentNotes();
 
         helper.setFrom("CodeStage Assessment <" + fromEmail + ">");
         helper.setTo(assessmentDTO.candidateName() + "<" + assessmentDTO.candidateEmail() + ">");
         helper.setSubject("You have been invited to a CodeStage Assessment");
-        helper.setText(inviteTemplateHTML, true);
+        helper.setText(plainText, inviteTemplateHTML);
 
         mailSender.send(message);
-
     }
 
     private String renderInviteTemplate(CreateAssessmentDTO assessmentDTO, JwtAdmin user, String assessmentLink) throws IOException {

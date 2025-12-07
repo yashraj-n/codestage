@@ -13,7 +13,7 @@ function AdminLoginPage() {
 	const navigate = useNavigate();
 
 	const googleSignIn = () => {
-		window.location.href = `${import.meta.env.VITE_PUBLIC_SERVER_URL}/api/auth/google`;
+		window.location.href = `${import.meta.env.VITE_PUBLIC_SERVER_URL}/oauth2/authorization/google`;
 	};
 
 	useEffect(() => {
