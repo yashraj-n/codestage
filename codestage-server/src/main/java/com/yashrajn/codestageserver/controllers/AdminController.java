@@ -21,7 +21,6 @@ public class AdminController {
 
     @GetMapping("/me")
     public JwtAdmin getAdmin(@AuthenticationPrincipal JwtAdmin user) {
-        test.executeCode();
         return user;
     }
 

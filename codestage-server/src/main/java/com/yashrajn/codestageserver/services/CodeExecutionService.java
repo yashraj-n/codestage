@@ -1,6 +1,5 @@
 package com.yashrajn.codestageserver.services;
 
-import com.yashrajn.codestageserver.models.Judge0Language;
 import com.yashrajn.codestageserver.models.dto.Judge0Request;
 import com.yashrajn.codestageserver.models.dto.Judge0Response;
 import lombok.extern.slf4j.Slf4j;
@@ -20,19 +19,11 @@ public class CodeExecutionService {
                 .build();
     }
 
-    public void executeCode() {
-        Judge0Request body = Judge0Request.builder()
-                .source_code("#include <stdio.h>\n\nint main(void) {\n  char name[10];\n  scanf(\"%s\", name);\n  printf(\"hello, %s\\n\", name);\n  return 0;\n}")
-                .language_id(Judge0Language.C)
-                .stdin(null)
-                .build();
-
-        Judge0Response res = httpClient.post()
-                .uri("/submissions?wait=true")
+    public Judge0Response executeCode(Judge0Request body) {
+        return httpClient.post()
+                .uri("/submissions?wait=true&base64_encoded=false")
                 .body(body)
                 .retrieve()
                 .body(Judge0Response.class);
-
-        log.info("Response: {}", res);
     }
 }

@@ -1,7 +1,6 @@
 "use client";
 
 import { ChevronRight, Terminal, Trash2 } from "lucide-react";
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
 	Tooltip,
@@ -13,10 +12,16 @@ import {
 interface TerminalPanelProps {
 	output: string[];
 	onClear: () => void;
+	stdin: string;
+	onStdinChange: (value: string) => void;
 }
 
-export function TerminalPanel({ output, onClear }: TerminalPanelProps) {
-	const [stdin, setStdin] = useState("");
+export function TerminalPanel({
+	output,
+	onClear,
+	stdin,
+	onStdinChange,
+}: TerminalPanelProps) {
 
 	const getLineClass = (line: string) => {
 		if (line.startsWith("$")) return "text-violet-400";
@@ -71,8 +76,8 @@ export function TerminalPanel({ output, onClear }: TerminalPanelProps) {
 
 			<div className="flex-1 overflow-auto bg-[#0a0a0f] p-4 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-white/10">
 				<div className="font-mono text-sm leading-7">
-					{output.map((line, i) => (
-						<div key={i} className={getLineClass(line)}>
+					{output.map((line) => (
+						<div key={crypto.randomUUID()} className={getLineClass(line)}>
 							{line || "\u00A0"}
 						</div>
 					))}
@@ -93,7 +98,7 @@ export function TerminalPanel({ output, onClear }: TerminalPanelProps) {
 				<div className="relative">
 					<textarea
 						value={stdin}
-						onChange={(e) => setStdin(e.target.value)}
+						onChange={(e) => onStdinChange(e.target.value)}
 						placeholder="Enter program input here...&#10;Each line will be read by your program"
 						rows={3}
 						className="w-full resize-none bg-transparent px-4 py-3 font-mono text-sm leading-relaxed text-white/80 placeholder:text-white/20 focus:outline-none"

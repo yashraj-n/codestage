@@ -1,3 +1,4 @@
+/** biome-ignore-all lint/suspicious/noTemplateCurlyInString: editor lang file */
 import type { Monaco } from "@monaco-editor/react";
 import type { editor, languages } from "monaco-editor";
 import type { ReactNode } from "react";
@@ -10,6 +11,13 @@ export interface LanguageConfig {
 	iconColor: string;
 	defaultCode: string;
 }
+
+export const JUDGE0_LANGUAGE_INDEX: Record<string, number> = {
+	cpp: 0,
+	java: 1,
+	python: 2,
+	javascript: 3,
+};
 
 export const languageConfig: Record<string, LanguageConfig> = {
 	JavaScript: {
@@ -47,7 +55,7 @@ print(solution([1, 2, 3]))`,
 		iconColor: "text-orange-500",
 		defaultCode: `import java.util.*;
 
-public class Solution {
+public class Main {
     public static List<Integer> flatten(List<Object> arr) {
         List<Integer> result = new ArrayList<>();
         for (Object item : arr) {

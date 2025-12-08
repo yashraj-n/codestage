@@ -9,4 +9,5 @@ public class Judge0Response {
     private Integer memory;
     private String stderr;
     private String token;
+    private String compile_output;
 }

@@ -1,7 +1,9 @@
 package com.yashrajn.codestageserver.controllers.ws;
 
-import com.yashrajn.codestageserver.models.ws.StompMessage;
+import com.yashrajn.codestageserver.models.dto.Judge0Request;
+import com.yashrajn.codestageserver.models.dto.Judge0Response;
 import com.yashrajn.codestageserver.services.CodeChangeService;
+import com.yashrajn.codestageserver.services.CodeExecutionService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.handler.annotation.DestinationVariable;
 import org.springframework.messaging.handler.annotation.MessageMapping;
@@ -14,9 +16,11 @@ import org.springframework.stereotype.Controller;
 public class WebSocketMessageController {
 
     private final CodeChangeService codeChangeService;
+    private final CodeExecutionService codeExecutionService;
 
-    public WebSocketMessageController(CodeChangeService codeChangeService) {
+    public WebSocketMessageController(CodeChangeService codeChangeService, CodeExecutionService codeExecutionService) {
         this.codeChangeService = codeChangeService;
+        this.codeExecutionService = codeExecutionService;
     }
 
     @MessageMapping("/{sessionId}/notes")
@@ -27,7 +31,7 @@ public class WebSocketMessageController {
 
     @MessageMapping("/{sessionId}/mouse")
     @SendTo("/topic/{sessionId}/mouse")
-    public StompMessage<Double[]> sendMouseMessage(@Payload StompMessage<Double[]> message) {
+    public Double[] sendMouseMessage(@Payload Double[] message) {
         return message;
     }
 
@@ -43,8 +47,25 @@ public class WebSocketMessageController {
     @SendTo("/topic/{sessionId}/code-change")
     public String codeChange(@Payload String code, @DestinationVariable String sessionId) {
         codeChangeService.createCodeChange(sessionId, code);
-        log.info("Code change sent to topic: {}", sessionId);
         return code;
+    }
+
+    @MessageMapping("/{sessionId}/execute-code")
+    @SendTo("/topic/{sessionId}/execute-code")
+    public Judge0Response codeExecute(@Payload Judge0Request code) {
+       return codeExecutionService.executeCode(code);
+    }
+
+    @MessageMapping("/{sessionId}/caret-move")
+    @SendTo("/topic/{sessionId}/caret-move")
+    public Integer[] caretMove(@Payload Integer[] message) {
+        return message;
+    }
+
+    @MessageMapping("/{sessionId}/draw-diff")
+    @SendTo("/topic/{sessionId}/draw-diff")
+    public String caretMove(@Payload String message) {
+        return message;
     }
 
 }

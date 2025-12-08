@@ -1,16 +1,13 @@
 package com.yashrajn.codestageserver.controllers.ws;
 
-import com.yashrajn.codestageserver.models.ws.StompMessage;
-import com.yashrajn.codestageserver.models.ws.StompMessageType;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
 import org.springframework.messaging.simp.SimpMessageSendingOperations;
 import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.stereotype.Component;
+import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.messaging.SessionConnectEvent;
 import org.springframework.web.socket.messaging.SessionDisconnectEvent;
-
-import java.util.Objects;
 
 @Component
 @Slf4j
@@ -30,6 +27,14 @@ public class WebSocketEventListener {
     public void handleWebSocketConnectListener(SessionConnectEvent event) {
         StompHeaderAccessor accessor = StompHeaderAccessor.wrap(event.getMessage());
         log.debug("User Principal: {}", accessor.getUser());
+    }
+
+    @EventListener
+    public void handleDisconnect(SessionDisconnectEvent event) {
+        String sessionId = event.getSessionId();
+        CloseStatus closeStatus = event.getCloseStatus();
+
+       log.info("Session {} disconnected with status {}", sessionId, closeStatus);
     }
 
 

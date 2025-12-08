@@ -8,6 +8,7 @@ import org.springframework.messaging.simp.config.MessageBrokerRegistry;
 import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBroker;
 import org.springframework.web.socket.config.annotation.StompEndpointRegistry;
 import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerConfigurer;
+import org.springframework.web.socket.config.annotation.WebSocketTransportRegistration;
 
 @Configuration
 @EnableWebSocketMessageBroker
@@ -18,6 +19,13 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     public WebSocketConfig(StompAuthInterceptor stompAuthInterceptor) {
         this.stompAuthInterceptor = stompAuthInterceptor;
+    }
+
+    @Override
+    public void configureWebSocketTransport(WebSocketTransportRegistration registry) {
+        registry.setMessageSizeLimit(10 * 1024 * 1024);        // 10 MB
+        registry.setSendBufferSizeLimit(10 * 1024 * 1024);     // 4 MB
+        registry.setSendTimeLimit(20 * 10000);                // 20 seconds
     }
 
     @Override
@@ -37,4 +45,6 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
                 .setAllowedOrigins("http://localhost:3001")
                 .withSockJS();
     }
+
+
 }

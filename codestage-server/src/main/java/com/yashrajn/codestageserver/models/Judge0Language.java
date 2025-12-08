@@ -4,10 +4,10 @@ import lombok.Getter;
 
 @Getter
 public enum Judge0Language {
-    C("50"),
-    CPP("54"),
+    CPP("105"),
     JAVA("62"),
-    PYTHON("71");
+    PYTHON("71"),
+    JAVASCRIPT("102");
 
     private final String id;
 

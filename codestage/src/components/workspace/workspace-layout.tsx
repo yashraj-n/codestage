@@ -1,20 +1,27 @@
 "use client";
 
-import type { Client, Message } from "@stomp/stompjs";
+import type { Message } from "@stomp/stompjs";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import type { AssessmentEvent, AssessmentEventType } from "@/lib/assessments";
-import type { JwtCandidate } from "@/lib/generated-api";
+import { JUDGE0_LANGUAGE_INDEX, languageConfig } from "@/lib/editor-languages";
+import type {
+	Judge0Request,
+	Judge0Response,
+	RemoteCursorProps,
+	WorkspaceLayoutProps,
+} from "@/types/workspace";
 import { EditorPanel } from "./editor-panel";
 import { EventsPanel } from "./events-panel";
 import { NotesPanel } from "./notes-panel";
 import { TerminalPanel } from "./terminal-panel";
 import { WorkspaceHeader } from "./workspace-header";
 
-const SMOOTH_FACTOR = 0.15;
-const SEND_THROTTLE = 100;
+const SMOOTH_FACTOR = 0.5;
+const SEND_THROTTLE = 20;
 const MIN_DISTANCE_THRESHOLD = 1;
 const INITIAL_CURSOR_POS = { x: 400, y: 300 };
+const SEND_MOUSE = true;
 
 const lerp = (start: number, end: number, factor: number) =>
 	start + (end - start) * factor;
@@ -34,17 +41,13 @@ const calculateDistance = (
 	p2: { x: number; y: number },
 ) => Math.sqrt((p2.x - p1.x) ** 2 + (p2.y - p1.y) ** 2);
 
-interface RemoteCursorProps {
-	name: string;
-	color: string;
-	x: number;
-	y: number;
-}
-
-interface WorkspaceLayoutProps {
-	user: JwtCandidate;
-	stompClient: Client;
-}
+const formatBytes = (bytes: number) => {
+	if (!Number.isFinite(bytes)) return "N/A";
+	const kb = bytes / 1024;
+	if (kb < 1024) return `${kb.toFixed(1)} KB`;
+	const mb = kb / 1024;
+	return `${mb.toFixed(2)} MB`;
+};
 
 function RemoteCursor({ name, color, x, y }: RemoteCursorProps) {
 	return (
@@ -94,11 +97,15 @@ export function WorkspaceLayout({ user, stompClient }: WorkspaceLayoutProps) {
 
 console.log(solution([1, [2, [3, [4]]]]));
 console.log(solution([1, 2, 3]));`);
+	const [stdin, setStdin] = useState("");
 	const [terminalOutput, setTerminalOutput] = useState<string[]>([
 		"CodeStage Console Output",
 	]);
 	const [events, setEvents] = useState<AssessmentEvent[]>([]);
 	const tabSwitchTimeRef = useRef<number | null>(null);
+	const runTimeoutRef = useRef<number | null>(null);
+	const [isRunning, setIsRunning] = useState(false);
+	const [remoteCaretPos, setRemoteCaretPos] = useState({ lineNumber: 1, column: 1 });
 
 	const [remoteCursorPos, setRemoteCursorPos] = useState(INITIAL_CURSOR_POS);
 	const cursorRefs = {
@@ -110,6 +117,9 @@ console.log(solution([1, 2, 3]));`);
 	};
 
 	const containerRef = useRef<HTMLDivElement>(null);
+	const remoteDrawChangeHandlerRef = useRef<((changes: unknown) => void) | null>(
+		null,
+	);
 
 	useEffect(() => {
 		const subscriptions: Array<{ unsubscribe: () => void }> = [];
@@ -139,9 +149,73 @@ console.log(solution([1, 2, 3]));`);
 				},
 			);
 			subscriptions.push(codeSub);
+
+			const caretSub = stompClient.subscribe(
+				`/topic/${user.sessionId}/caret-move`,
+				(message: Message) => {
+					const [lineNumber, column] = JSON.parse(message.body);
+					setRemoteCaretPos({ lineNumber, column });
+				},
+			);
+			subscriptions.push(caretSub);
+
+			const drawDiffSub = stompClient.subscribe(
+				`/topic/${user.sessionId}/draw-diff`,
+				(message: Message) => {
+					try {
+						const changes = JSON.parse(message.body);
+						remoteDrawChangeHandlerRef.current?.(changes);
+					} catch (error) {
+						console.error("Error parsing draw-diff:", error);
+					}
+				},
+			);
+			subscriptions.push(drawDiffSub);
 		}
 
-		if (!user.isAdmin) {
+		// Subscribe to execution results (for everyone)
+		const executionSub = stompClient.subscribe(
+			`/topic/${user.sessionId}/execute-code`,
+			(message: Message) => {
+				try {
+					const response: Judge0Response = JSON.parse(message.body);
+					const lines: string[] = [];
+
+					if (response.stdout) {
+						lines.push(...response.stdout.split("\n").filter(Boolean));
+					}
+					if (response.stderr) {
+						lines.push(`stderr: ${response.stderr}`);
+					}
+					if (response.compile_output) {
+						lines.push(`compile_output: ${response.compile_output}`);
+					}
+					if (lines.length === 0) {
+						lines.push("No output");
+					}
+
+					setTerminalOutput((prev) => [
+						...prev,
+						"",
+						"$ Execution Result",
+						...lines,
+						"",
+						`Time: ${response.time}s | Memory: ${formatBytes(response.memory)}`,
+					]);
+					setIsRunning(false);
+					if (runTimeoutRef.current) {
+						clearTimeout(runTimeoutRef.current);
+						runTimeoutRef.current = null;
+					}
+				} catch (error) {
+					console.error("Error parsing execution response:", error);
+					setIsRunning(false);
+				}
+			},
+		);
+		subscriptions.push(executionSub);
+
+		if (!user.isAdmin && SEND_MOUSE) {
 			mouseMoveHandler = (e: MouseEvent) => {
 				const { x, y } = normalizeCoordinates(e.clientX, e.clientY);
 				cursorRefs.mouse.current = { x: e.clientX, y: e.clientY };
@@ -153,11 +227,7 @@ console.log(solution([1, 2, 3]));`);
 					if (stompClient.connected) {
 						stompClient.publish({
 							destination: `/app/${user.sessionId}/mouse`,
-							body: JSON.stringify({
-								data: [x, y],
-								type: "MOUSE_MOVE",
-								sessionId: user.sessionId,
-							}),
+							body: JSON.stringify([x, y]),
 						});
 					}
 				}
@@ -188,22 +258,15 @@ console.log(solution([1, 2, 3]));`);
 				}
 			};
 
-			const mouseSub = stompClient.subscribe(
+		const mouseSub = stompClient.subscribe(
 				`/topic/${user.sessionId}/mouse`,
 				(message: Message) => {
-					try {
-						const data = JSON.parse(message.body);
-						if (data.data?.length === 2) {
-							const [nx, ny] = data.data;
-							cursorRefs.target.current = denormalizeCoordinates(nx, ny);
-
-							if (!cursorRefs.animationFrame.current) {
-								cursorRefs.animationFrame.current =
-									requestAnimationFrame(interpolatePosition);
-							}
-						}
-					} catch (error) {
-						console.error("Error parsing mouse position:", error);
+			
+					const [nx, ny] = JSON.parse(message.body);
+					cursorRefs.target.current = denormalizeCoordinates(nx, ny);
+					if (!cursorRefs.animationFrame.current) {
+						cursorRefs.animationFrame.current =
+							requestAnimationFrame(interpolatePosition);
 					}
 				},
 			);
@@ -225,12 +288,12 @@ console.log(solution([1, 2, 3]));`);
 		user.isAdmin,
 		user.sessionId,
 		stompClient,
-		cursorRefs.animationFrame,
-		cursorRefs.current,
-		cursorRefs.lastSendTime,
-		cursorRefs.mouse,
-		cursorRefs.target,
-	]);
+			cursorRefs.animationFrame,
+			cursorRefs.current,
+			cursorRefs.lastSendTime,
+			cursorRefs.mouse,
+			cursorRefs.target,
+		]);
 
 	const addEvent = useCallback(
 		(type: AssessmentEventType, details?: string) => {
@@ -284,18 +347,34 @@ console.log(solution([1, 2, 3]));`);
 		};
 	}, [addEvent]);
 
-	const handleRunCode = () => {
+	const handleRunCode = useCallback(() => {
 		addEvent("code_run");
-		setTerminalOutput((prev) => [
-			...prev,
-			"",
-			"$ node solution.js",
-			"[1, 2, 3, 4]",
-			"[1, 2, 3]",
-			"",
-			"✓ Executed successfully",
-		]);
-	};
+		setTerminalOutput((prev) => [...prev, "", "$ Running code..."]);
+		setIsRunning(true);
+		if (runTimeoutRef.current) {
+			clearTimeout(runTimeoutRef.current);
+		}
+		runTimeoutRef.current = window.setTimeout(() => {
+			setIsRunning(false);
+			runTimeoutRef.current = null;
+		}, 5000);
+
+		if (stompClient?.connected) {
+			const langConfig = languageConfig[language];
+			const judge0Index = JUDGE0_LANGUAGE_INDEX[langConfig?.id] ?? 0;
+
+			const request: Judge0Request = {
+				language_id: judge0Index,
+				source_code: code,
+				stdin,
+			};
+
+			stompClient.publish({
+				destination: `/app/${user.sessionId}/execute-code`,
+				body: JSON.stringify(request),
+			});
+		}
+	}, [addEvent, code, language, stdin, stompClient, user.sessionId]);
 
 	const handleLanguageChange = useCallback(
 		(newLang: string) => {
@@ -317,6 +396,18 @@ console.log(solution([1, 2, 3]));`);
 				stompClient.publish({
 					destination: `/app/${user.sessionId}/code-change`,
 					body: newCode,
+				});
+			}
+		},
+		[user.isAdmin, user.sessionId, stompClient],
+	);
+
+	const handleCaretChange = useCallback(
+		(line: number, column: number) => {
+			if (!user.isAdmin && stompClient.connected) {
+				stompClient.publish({
+					destination: `/app/${user.sessionId}/caret-move`,
+					body: JSON.stringify([line, column]),
 				});
 			}
 		},
@@ -382,8 +473,19 @@ console.log(solution([1, 2, 3]));`);
 							value={code}
 							onChange={handleCodeChange}
 							onRun={handleRunCode}
+							sessionId={user.sessionId ?? ""}
+							readOnly={user.isAdmin ?? false}
+							isRunning={isRunning}
 							language={language}
 							onLanguageChange={handleLanguageChange}
+							onCaretChange={handleCaretChange}
+							remoteCursorPosition={user.isAdmin ? remoteCaretPos : undefined}
+							showRemoteCursor={user.isAdmin}
+							stompClient={stompClient}
+							isAdmin={user.isAdmin ?? false}
+							onRemoteDrawChange={(handler) => {
+								remoteDrawChangeHandlerRef.current = handler;
+							}}
 						/>
 					</Panel>
 
@@ -395,6 +497,8 @@ console.log(solution([1, 2, 3]));`);
 						<TerminalPanel
 							output={terminalOutput}
 							onClear={handleClearTerminal}
+							stdin={stdin}
+							onStdinChange={setStdin}
 						/>
 					</Panel>
 
