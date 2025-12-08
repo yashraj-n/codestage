@@ -5,12 +5,34 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import type { AssessmentEvent, AssessmentEventType } from "@/lib/assessments";
 import type { JwtCandidate } from "@/lib/generated-api";
-import { createStompMessage, type StompMessage, StompMessageType } from "@/lib/ws-helper";
 import { EditorPanel } from "./editor-panel";
 import { EventsPanel } from "./events-panel";
 import { NotesPanel } from "./notes-panel";
 import { TerminalPanel } from "./terminal-panel";
 import { WorkspaceHeader } from "./workspace-header";
+
+const SMOOTH_FACTOR = 0.15;
+const SEND_THROTTLE = 100;
+const MIN_DISTANCE_THRESHOLD = 1;
+const INITIAL_CURSOR_POS = { x: 400, y: 300 };
+
+const lerp = (start: number, end: number, factor: number) =>
+	start + (end - start) * factor;
+
+const normalizeCoordinates = (x: number, y: number) => ({
+	x: x / window.innerWidth,
+	y: y / window.innerHeight,
+});
+
+const denormalizeCoordinates = (x: number, y: number) => ({
+	x: x * window.innerWidth,
+	y: y * window.innerHeight,
+});
+
+const calculateDistance = (
+	p1: { x: number; y: number },
+	p2: { x: number; y: number },
+) => Math.sqrt((p2.x - p1.x) ** 2 + (p2.y - p1.y) ** 2);
 
 interface RemoteCursorProps {
 	name: string;
@@ -27,8 +49,10 @@ interface WorkspaceLayoutProps {
 function RemoteCursor({ name, color, x, y }: RemoteCursorProps) {
 	return (
 		<div
-			className="pointer-events-none fixed z-9999 transition-all duration-150 ease-out"
-			style={{ left: x, top: y }}
+			className="pointer-events-none fixed left-0 top-0 z-9999"
+			style={{
+				transform: `translate3d(${x}px, ${y}px, 0) translate(-2px, -2px)`,
+			}}
 		>
 			{/* Cursor SVG */}
 			<svg
@@ -63,6 +87,7 @@ function RemoteCursor({ name, color, x, y }: RemoteCursorProps) {
 
 export function WorkspaceLayout({ user, stompClient }: WorkspaceLayoutProps) {
 	const [notes, setNotes] = useState("Only admin can edit these notes");
+	const [language, setLanguage] = useState("JavaScript");
 	const [code, setCode] = useState(`function solution(arr) {
   return arr.flat(Infinity);
 }
@@ -75,42 +100,137 @@ console.log(solution([1, 2, 3]));`);
 	const [events, setEvents] = useState<AssessmentEvent[]>([]);
 	const tabSwitchTimeRef = useRef<number | null>(null);
 
-	const [remoteCursorPos, setRemoteCursorPos] = useState({ x: 400, y: 300 });
+	const [remoteCursorPos, setRemoteCursorPos] = useState(INITIAL_CURSOR_POS);
+	const cursorRefs = {
+		current: useRef(INITIAL_CURSOR_POS),
+		target: useRef(INITIAL_CURSOR_POS),
+		mouse: useRef({ x: 0, y: 0 }),
+		animationFrame: useRef<number | null>(null),
+		lastSendTime: useRef(0),
+	};
+
 	const containerRef = useRef<HTMLDivElement>(null);
 
 	useEffect(() => {
-		const interval = setInterval(() => {
-			setRemoteCursorPos((prev) => {
-				const maxX = window.innerWidth - 100;
-				const maxY = window.innerHeight - 100;
+		const subscriptions: Array<{ unsubscribe: () => void }> = [];
+		let mouseMoveHandler: ((e: MouseEvent) => void) | null = null;
 
-				const deltaX = (Math.random() - 0.5) * 120;
-				const deltaY = (Math.random() - 0.5) * 80;
-
-				const newX = Math.max(50, Math.min(maxX, prev.x + deltaX));
-				const newY = Math.max(80, Math.min(maxY, prev.y + deltaY));
-
-				return { x: newX, y: newY };
-			});
-		}, 600);
-
-		return () => clearInterval(interval);
-	}, []);
-
-	useEffect(() => {
 		if (!user.isAdmin) {
-			console.log(`Subscribing to notes for session: ${user.sessionId}`);
-			stompClient.subscribe(
+			const notesSub = stompClient.subscribe(
 				`/topic/${user.sessionId}/notes`,
+				(message: Message) => setNotes(message.body),
+			);
+			subscriptions.push(notesSub);
+		}
+
+		if (user.isAdmin) {
+			const langSub = stompClient.subscribe(
+				`/topic/${user.sessionId}/language-switch`,
 				(message: Message) => {
-					const messageData = JSON.parse(message.body) as StompMessage<string>;
-					if (messageData.type === StompMessageType.NOTES) {
-						setNotes(messageData.data);
+					setLanguage(message.body);
+				},
+			);
+			subscriptions.push(langSub);
+
+			const codeSub = stompClient.subscribe(
+				`/topic/${user.sessionId}/code-change`,
+				(message: Message) => {
+					setCode(message.body);
+				},
+			);
+			subscriptions.push(codeSub);
+		}
+
+		if (!user.isAdmin) {
+			mouseMoveHandler = (e: MouseEvent) => {
+				const { x, y } = normalizeCoordinates(e.clientX, e.clientY);
+				cursorRefs.mouse.current = { x: e.clientX, y: e.clientY };
+
+				const now = Date.now();
+				if (now - cursorRefs.lastSendTime.current >= SEND_THROTTLE) {
+					cursorRefs.lastSendTime.current = now;
+
+					if (stompClient.connected) {
+						stompClient.publish({
+							destination: `/app/${user.sessionId}/mouse`,
+							body: JSON.stringify({
+								data: [x, y],
+								type: "MOUSE_MOVE",
+								sessionId: user.sessionId,
+							}),
+						});
+					}
+				}
+			};
+
+			window.addEventListener("mousemove", mouseMoveHandler);
+		}
+
+		if (user.isAdmin) {
+			const interpolatePosition = () => {
+				const current = cursorRefs.current.current;
+				const target = cursorRefs.target.current;
+
+				const newPos = {
+					x: lerp(current.x, target.x, SMOOTH_FACTOR),
+					y: lerp(current.y, target.y, SMOOTH_FACTOR),
+				};
+
+				cursorRefs.current.current = newPos;
+				setRemoteCursorPos(newPos);
+
+				const distance = calculateDistance(newPos, target);
+				if (distance > MIN_DISTANCE_THRESHOLD) {
+					cursorRefs.animationFrame.current =
+						requestAnimationFrame(interpolatePosition);
+				} else {
+					cursorRefs.animationFrame.current = null;
+				}
+			};
+
+			const mouseSub = stompClient.subscribe(
+				`/topic/${user.sessionId}/mouse`,
+				(message: Message) => {
+					try {
+						const data = JSON.parse(message.body);
+						if (data.data?.length === 2) {
+							const [nx, ny] = data.data;
+							cursorRefs.target.current = denormalizeCoordinates(nx, ny);
+
+							if (!cursorRefs.animationFrame.current) {
+								cursorRefs.animationFrame.current =
+									requestAnimationFrame(interpolatePosition);
+							}
+						}
+					} catch (error) {
+						console.error("Error parsing mouse position:", error);
 					}
 				},
 			);
+			subscriptions.push(mouseSub);
 		}
-	}, [stompClient.subscribe, user.isAdmin, user.sessionId]);
+
+		return () => {
+			if (mouseMoveHandler) {
+				window.removeEventListener("mousemove", mouseMoveHandler);
+			}
+			for (const sub of subscriptions) {
+				sub.unsubscribe();
+			}
+			if (cursorRefs.animationFrame.current) {
+				cancelAnimationFrame(cursorRefs.animationFrame.current);
+			}
+		};
+	}, [
+		user.isAdmin,
+		user.sessionId,
+		stompClient,
+		cursorRefs.animationFrame,
+		cursorRefs.current,
+		cursorRefs.lastSendTime,
+		cursorRefs.mouse,
+		cursorRefs.target,
+	]);
 
 	const addEvent = useCallback(
 		(type: AssessmentEventType, details?: string) => {
@@ -134,41 +254,34 @@ console.log(solution([1, 2, 3]));`);
 			if (document.hidden) {
 				tabSwitchTimeRef.current = Date.now();
 				addEvent("tab_switch", "Switched away from tab");
-			} else {
-				if (tabSwitchTimeRef.current) {
-					const awayTime = Math.round(
-						(Date.now() - tabSwitchTimeRef.current) / 1000,
-					);
-					addEvent("focus_gained", `Returned after ${awayTime}s`);
-					tabSwitchTimeRef.current = null;
-				}
+			} else if (tabSwitchTimeRef.current) {
+				const awayTime = Math.round(
+					(Date.now() - tabSwitchTimeRef.current) / 1000,
+				);
+				addEvent("focus_gained", `Returned after ${awayTime}s`);
+				tabSwitchTimeRef.current = null;
 			}
 		};
 
-		document.addEventListener("visibilitychange", handleVisibilityChange);
-		return () =>
-			document.removeEventListener("visibilitychange", handleVisibilityChange);
-	}, [addEvent]);
-
-	useEffect(() => {
 		const handlePaste = (e: ClipboardEvent) => {
-			const pastedText = e.clipboardData?.getData("text") || "";
-			addEvent("paste", `${pastedText.length} chars`);
+			const text = e.clipboardData?.getData("text") || "";
+			addEvent("paste", `${text.length} chars`);
 		};
 
-		document.addEventListener("paste", handlePaste);
-		return () => document.removeEventListener("paste", handlePaste);
-	}, [addEvent]);
-
-	useEffect(() => {
 		const handleCopy = () => {
-			const selection = window.getSelection();
-			const selectedText = selection?.toString() || "";
-			addEvent("copy", `${selectedText.length} chars`);
+			const text = window.getSelection()?.toString() || "";
+			addEvent("copy", `${text.length} chars`);
 		};
 
+		document.addEventListener("visibilitychange", handleVisibilityChange);
+		document.addEventListener("paste", handlePaste);
 		document.addEventListener("copy", handleCopy);
-		return () => document.removeEventListener("copy", handleCopy);
+
+		return () => {
+			document.removeEventListener("visibilitychange", handleVisibilityChange);
+			document.removeEventListener("paste", handlePaste);
+			document.removeEventListener("copy", handleCopy);
+		};
 	}, [addEvent]);
 
 	const handleRunCode = () => {
@@ -184,18 +297,42 @@ console.log(solution([1, 2, 3]));`);
 		]);
 	};
 
-	const handleEditNotes = (notes: string) => {
-		setNotes(notes);
-		stompClient.publish({
-			destination: `/app/${user.sessionId}/notes`,
-			body: createStompMessage(
-				notes,
-				StompMessageType.NOTES,
-				user.sessionId ?? "",
-			),
-		});
-		console.log(`Sent notes to server: ${notes}`);
-	};
+	const handleLanguageChange = useCallback(
+		(newLang: string) => {
+			setLanguage(newLang);
+			if (!user.isAdmin) {
+				stompClient.publish({
+					destination: `/app/${user.sessionId}/language-switch`,
+					body: newLang,
+				});
+			}
+		},
+		[user.isAdmin, user.sessionId, stompClient],
+	);
+
+	const handleCodeChange = useCallback(
+		(newCode: string) => {
+			setCode(newCode);
+			if (!user.isAdmin) {
+				stompClient.publish({
+					destination: `/app/${user.sessionId}/code-change`,
+					body: newCode,
+				});
+			}
+		},
+		[user.isAdmin, user.sessionId, stompClient],
+	);
+
+	const handleEditNotes = useCallback(
+		(notes: string) => {
+			setNotes(notes);
+			stompClient.publish({
+				destination: `/app/${user.sessionId}/notes`,
+				body: notes,
+			});
+		},
+		[user.sessionId, stompClient],
+	);
 
 	const handleClearTerminal = () => {
 		setTerminalOutput(["CodeStage Terminal v1.0"]);
@@ -243,8 +380,10 @@ console.log(solution([1, 2, 3]));`);
 					<Panel defaultSize={40} minSize={30}>
 						<EditorPanel
 							value={code}
-							onChange={setCode}
+							onChange={handleCodeChange}
 							onRun={handleRunCode}
+							language={language}
+							onLanguageChange={handleLanguageChange}
 						/>
 					</Panel>
 

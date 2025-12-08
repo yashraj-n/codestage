@@ -4,9 +4,9 @@ import { useEffect, useRef, useState } from "react";
 import SockJS from "sockjs-client";
 import { AuthLoadingPage, InvalidTokenPage } from "@/components/invalid-token";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
-import { assessmentsApi } from "@/lib/api-client";
+import { config } from "@/lib/api-client";
+import { AssessmentControllerApi } from "@/lib/generated-api";
 import type { JwtCandidate } from "@/lib/generated-api/models/JwtCandidate";
-import { useAuthTokenStore } from "@/stores/auth-store";
 
 interface WorkspaceSearch {
 	token?: string;
@@ -23,7 +23,6 @@ export const Route = createFileRoute("/workspace/")({
 
 export default function WorkspacePage() {
 	const { token } = Route.useSearch();
-	const setToken = useAuthTokenStore((state) => state.setToken);
 
 	const [isLoading, setIsLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
@@ -37,11 +36,11 @@ export default function WorkspacePage() {
 			return;
 		}
 
-		setToken(token);
-
 		const verifyAndConnect = async () => {
 			try {
-				const validToken = await assessmentsApi.checkCandidateToken({
+				const validToken = await new AssessmentControllerApi(
+					config,
+				).checkCandidateToken({
 					headers: {
 						Authorization: token,
 					},
@@ -94,7 +93,7 @@ export default function WorkspacePage() {
 				stompClientRef.current.deactivate();
 			}
 		};
-	}, [token, setToken]);
+	}, [token]);
 
 	if (isLoading) {
 		return <AuthLoadingPage />;
@@ -108,5 +107,7 @@ export default function WorkspacePage() {
 		return <AuthLoadingPage />;
 	}
 
-	return <WorkspaceLayout stompClient={stompClientRef.current} user={candidate} />;
+	return (
+		<WorkspaceLayout stompClient={stompClientRef.current} user={candidate} />
+	);
 }

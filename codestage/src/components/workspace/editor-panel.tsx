@@ -140,12 +140,21 @@ interface EditorPanelProps {
 	value: string;
 	onChange: (value: string) => void;
 	onRun: () => void;
+	language?: string;
+	onLanguageChange?: (language: string) => void;
 }
 
 const FONT_SIZE_OPTIONS = [12, 14, 16, 18, 20, 22, 24] as const;
 
-export function EditorPanel({ value, onChange, onRun }: EditorPanelProps) {
-	const [language, setLanguage] = useState("JavaScript");
+export function EditorPanel({
+	value,
+	onChange,
+	onRun,
+	language: controlledLanguage,
+	onLanguageChange,
+}: EditorPanelProps) {
+	const [internalLanguage, setInternalLanguage] = useState("JavaScript");
+	const language = controlledLanguage ?? internalLanguage;
 	const [cursorPosition, setCursorPosition] = useState({ line: 1, column: 1 });
 	const [activeTab, setActiveTab] = useState("editor");
 	const [fontSize, setFontSize] = useState(14);
@@ -291,7 +300,11 @@ export function EditorPanel({ value, onChange, onRun }: EditorPanelProps) {
 	};
 
 	const handleLanguageChange = (newLang: string) => {
-		setLanguage(newLang);
+		if (onLanguageChange) {
+			onLanguageChange(newLang);
+		} else {
+			setInternalLanguage(newLang);
+		}
 		onChange(languageConfig[newLang].defaultCode);
 	};
 
@@ -321,7 +334,7 @@ export function EditorPanel({ value, onChange, onRun }: EditorPanelProps) {
 	};
 
 	return (
-		<div className="relative flex h-full flex-col overflow-hidden rounded-2xl border border-white/[0.08] bg-gradient-to-b from-[#13131a] to-[#0d0d14]">
+		<div className="relative flex h-full flex-col overflow-hidden rounded-2xl border border-white/8 bg-linear-to-b from-[#13131a] to-[#0d0d14]">
 			<div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-violet-500/50 to-transparent" />
 
 			<Tabs

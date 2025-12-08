@@ -8,3 +8,11 @@ CREATE TABLE assessments
     admin_id        varchar(255),
     created_at      TIMESTAMP
 );
+
+CREATE TABLE code_changes
+(
+    id            SERIAL PRIMARY KEY,
+    assessment_id INTEGER REFERENCES assessments (id),
+    code          TEXT,
+    created_at    TIMESTAMP
+);
