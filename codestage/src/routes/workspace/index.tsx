@@ -55,6 +55,7 @@ export default function WorkspacePage() {
 				const stompClient = Stomp.over(
 					() => new SockJS(`${import.meta.env.VITE_PUBLIC_SERVER_URL}/ws`),
 				);
+				stompClient.debug = (..._any) => {}
 				stompClient.connect(
 					{ Authorization: token },
 					(frame: IFrame) => {

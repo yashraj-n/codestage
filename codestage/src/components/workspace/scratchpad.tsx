@@ -69,7 +69,7 @@ function EditorLogger({
 					});
 				}
 			},
-			{ scope: "document" },
+			{ scope: "all" },
 		);
 
 		// Set up handler for remote changes (admin only)
