@@ -2,9 +2,11 @@ package com.yashrajn.codestageserver.controllers;
 
 import com.yashrajn.codestageserver.auth.JwtAdmin;
 import com.yashrajn.codestageserver.auth.JwtCandidate;
-import com.yashrajn.codestageserver.models.dto.CreateAssessmentDTO;
+import com.yashrajn.codestageserver.models.dto.CreateAssessmentRequest;
+import com.yashrajn.codestageserver.models.dto.EventsResponse;
 import com.yashrajn.codestageserver.models.entity.Assessment;
 import com.yashrajn.codestageserver.services.AssessmentService;
+import com.yashrajn.codestageserver.services.WorkspaceService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -21,17 +23,19 @@ import java.util.List;
 public class AssessmentController {
 
     private final AssessmentService assessmentService;
+    private final WorkspaceService workspaceService;
 
-    AssessmentController(AssessmentService assessmentService) {
+    AssessmentController(AssessmentService assessmentService, WorkspaceService workspaceService) {
         this.assessmentService = assessmentService;
+        this.workspaceService = workspaceService;
     }
 
     @PostMapping
     public ResponseEntity<String> createAssessment(
-            @Valid @RequestBody CreateAssessmentDTO createAssessmentDTO,
+            @Valid @RequestBody CreateAssessmentRequest createAssessmentRequest,
             @AuthenticationPrincipal JwtAdmin user
     ) {
-        assessmentService.createAssessment(createAssessmentDTO, user);
+        assessmentService.createAssessment(createAssessmentRequest, user);
         return new ResponseEntity<>("{}", HttpStatus.CREATED);
     }
 
@@ -48,5 +52,10 @@ public class AssessmentController {
     @GetMapping("/check-token")
     public JwtCandidate checkCandidateToken(HttpServletRequest request){
         return assessmentService.checkCandidateToken(request.getHeader("Authorization"));
+    }
+
+    @GetMapping("/replay/{sessionId}")
+    public EventsResponse replay(@PathVariable String sessionId, @AuthenticationPrincipal JwtAdmin user){
+        return workspaceService.getReplayEvents(sessionId, user);
     }
 }

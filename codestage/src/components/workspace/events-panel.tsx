@@ -21,16 +21,18 @@ interface EventsPanelProps {
 
 const getEventIcon = (type: AssessmentEventType) => {
 	const icons: Record<AssessmentEventType, React.ReactNode> = {
-		tab_switch: <EyeOff className="h-3 w-3" />,
-		paste: <Clipboard className="h-3 w-3" />,
-		copy: <Copy className="h-3 w-3" />,
-		focus_lost: <EyeOff className="h-3 w-3" />,
-		focus_gained: <Eye className="h-3 w-3" />,
-		session_start: <LogIn className="h-3 w-3" />,
-		session_end: <LogOut className="h-3 w-3" />,
-		code_run: <Play className="h-3 w-3" />,
+		TAB_SWITCH: <EyeOff className="h-3 w-3" />,
+		PASTE: <Clipboard className="h-3 w-3" />,
+		COPY: <Copy className="h-3 w-3" />,
+		FOCUS_LOST: <EyeOff className="h-3 w-3" />,
+		FOCUS_GAINED: <Eye className="h-3 w-3" />,
+		SESSION_START: <LogIn className="h-3 w-3" />,
+		SESSION_END: <LogOut className="h-3 w-3" />,
+		CODE_RUN: <Play className="h-3 w-3" />,
+		CODE_CHANGE: <Activity className="h-3 w-3" />,
+		EXECUTE_CODE: <Play className="h-3 w-3" />,
 	};
-	return icons[type];
+	return icons[type] ?? <Activity className="h-3 w-3" />;
 };
 
 const getEventStyle = (type: AssessmentEventType) => {
@@ -38,62 +40,78 @@ const getEventStyle = (type: AssessmentEventType) => {
 		AssessmentEventType,
 		{ bg: string; text: string; border: string }
 	> = {
-		tab_switch: {
+		TAB_SWITCH: {
 			bg: "bg-red-500/10",
 			text: "text-red-400",
 			border: "border-red-500/20",
 		},
-		paste: {
+		PASTE: {
 			bg: "bg-amber-500/10",
 			text: "text-amber-400",
 			border: "border-amber-500/20",
 		},
-		copy: {
+		COPY: {
 			bg: "bg-orange-500/10",
 			text: "text-orange-400",
 			border: "border-orange-500/20",
 		},
-		focus_lost: {
+		FOCUS_LOST: {
 			bg: "bg-red-500/10",
 			text: "text-red-400",
 			border: "border-red-500/20",
 		},
-		focus_gained: {
+		FOCUS_GAINED: {
 			bg: "bg-emerald-500/10",
 			text: "text-emerald-400",
 			border: "border-emerald-500/20",
 		},
-		session_start: {
+		SESSION_START: {
 			bg: "bg-cyan-500/10",
 			text: "text-cyan-400",
 			border: "border-cyan-500/20",
 		},
-		session_end: {
+		SESSION_END: {
 			bg: "bg-violet-500/10",
 			text: "text-violet-400",
 			border: "border-violet-500/20",
 		},
-		code_run: {
+		CODE_RUN: {
 			bg: "bg-blue-500/10",
 			text: "text-blue-400",
 			border: "border-blue-500/20",
 		},
+		CODE_CHANGE: {
+			bg: "bg-indigo-500/10",
+			text: "text-indigo-400",
+			border: "border-indigo-500/20",
+		},
+		EXECUTE_CODE: {
+			bg: "bg-green-500/10",
+			text: "text-green-400",
+			border: "border-green-500/20",
+		},
 	};
-	return styles[type];
+	return styles[type] ?? {
+		bg: "bg-gray-500/10",
+		text: "text-gray-400",
+		border: "border-gray-500/20",
+	};
 };
 
 const getEventLabel = (type: AssessmentEventType) => {
 	const labels: Record<AssessmentEventType, string> = {
-		tab_switch: "Tab Switch",
-		paste: "Paste",
-		copy: "Copy",
-		focus_lost: "Focus Lost",
-		focus_gained: "Focus Gained",
-		session_start: "Session Start",
-		session_end: "Session End",
-		code_run: "Code Run",
+		TAB_SWITCH: "Tab Switch",
+		PASTE: "Paste",
+		COPY: "Copy",
+		FOCUS_LOST: "Focus Lost",
+		FOCUS_GAINED: "Focus Gained",
+		SESSION_START: "Session Start",
+		SESSION_END: "Session End",
+		CODE_RUN: "Code Run",
+		CODE_CHANGE: "Code Change",
+		EXECUTE_CODE: "Execute Code",
 	};
-	return labels[type];
+	return labels[type] ?? type;
 };
 
 const formatTime = (dateString: string) => {

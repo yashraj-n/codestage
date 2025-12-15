@@ -41,4 +41,10 @@ public class Assessment {
     @Column(name = "created_at")
     private Instant createdAt;
 
+    @Column(name = "code", length = Integer.MAX_VALUE)
+    private String code;
+
+    @Column(name = "notes", length = Integer.MAX_VALUE)
+    private String notes;
+
 }

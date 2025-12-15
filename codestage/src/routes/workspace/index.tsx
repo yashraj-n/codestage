@@ -36,6 +36,27 @@ export default function WorkspacePage() {
 			return;
 		}
 
+		const extractErrorMessage = async (err: unknown): Promise<string> => {
+			if (err instanceof Response) {
+				try {
+					const data = await err.json();
+					return data.message || "An error occurred";
+				} catch {
+					return "An error occurred";
+				}
+			}
+			if (err && typeof err === "object" && "response" in err) {
+				const response = (err as { response: Response }).response;
+				try {
+					const data = await response.json();
+					return data.message || "An error occurred";
+				} catch {
+					return "An error occurred";
+				}
+			}
+			return "An error occurred";
+		};
+
 		const verifyAndConnect = async () => {
 			try {
 				const validToken = await new AssessmentControllerApi(
@@ -80,9 +101,10 @@ export default function WorkspacePage() {
 					console.error("Broker error:", frame.headers.message);
 					console.error("Details:", frame.body);
 				};
-			} catch (error) {
-				console.error("Error verifying and connecting to WebSocket:", error);
-				setError("Failed to connect to WebSocket");
+			} catch (err) {
+				console.error("Error verifying and connecting to WebSocket:", err);
+				const message = await extractErrorMessage(err);
+				setError(message);
 				setIsLoading(false);
 			}
 		};
@@ -101,7 +123,7 @@ export default function WorkspacePage() {
 	}
 
 	if (error || !candidate) {
-		return <InvalidTokenPage />;
+		return <InvalidTokenPage message={error || undefined} />;
 	}
 
 	if (!stompClientRef.current) {

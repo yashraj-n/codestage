@@ -72,7 +72,6 @@ function EditorLogger({
 			{ scope: "all" },
 		);
 
-		// Set up handler for remote changes (admin only)
 		if (isAdmin && onRemoteChange) {
 			const handleRemoteChange = (changes: unknown) => {
 				if (editor && changes) {

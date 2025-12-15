@@ -1,10 +1,18 @@
 "use client";
 
-import { Code2, Crown, LogOut, Users } from "lucide-react";
+import { AlertTriangle, Code2, Crown, LogOut, Users } from "lucide-react";
 import { useState } from "react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogFooter,
+	DialogHeader,
+	DialogTitle,
+} from "@/components/ui/dialog";
 import {
 	Tooltip,
 	TooltipContent,
@@ -14,12 +22,58 @@ import {
 
 interface WorkspaceHeaderProps {
 	isAdmin: boolean;
+	onEndSession: () => void;
 }
 
-export function WorkspaceHeader({ isAdmin }: WorkspaceHeaderProps) {
+export function WorkspaceHeader({ isAdmin, onEndSession }: WorkspaceHeaderProps) {
 	const [_copied, _setCopied] = useState(false);
+	const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+
+	const handleEndSessionClick = () => {
+		setShowConfirmDialog(true);
+	};
+
+	const handleConfirmEndSession = () => {
+		setShowConfirmDialog(false);
+		onEndSession();
+	};
 
 	return (
+		<>
+			<Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+				<DialogContent className="border-white/10 bg-[#0d0d14] text-white sm:max-w-md">
+					<DialogHeader className="items-center text-center">
+						<div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-red-500/10 ring-1 ring-red-500/30">
+							<AlertTriangle className="h-7 w-7 text-red-400" />
+						</div>
+						<DialogTitle className="text-xl text-white">
+							{isAdmin ? "End Session?" : "Leave Session?"}
+						</DialogTitle>
+						<DialogDescription className="text-white/60">
+							{isAdmin
+								? "Are you sure you want to end this session? This will submit the candidate's work and they will no longer be able to make changes."
+								: "Are you sure you want to leave? Your current progress will be saved."}
+						</DialogDescription>
+					</DialogHeader>
+					<DialogFooter className="mt-4 flex gap-2 sm:justify-center">
+						<Button
+							variant="outline"
+							onClick={() => setShowConfirmDialog(false)}
+							className="border-white/10 bg-white/5 text-white hover:bg-white/10 hover:text-white"
+						>
+							Cancel
+						</Button>
+						<Button
+							onClick={handleConfirmEndSession}
+							className="gap-2 bg-red-500 text-white hover:bg-red-600"
+						>
+							<LogOut className="h-4 w-4" />
+							{isAdmin ? "End Session" : "Leave"}
+						</Button>
+					</DialogFooter>
+				</DialogContent>
+			</Dialog>
+
 		<header className="relative z-20 flex h-14 items-center justify-between border-b border-white/[0.06] bg-[#0d0d14]/80 px-4 backdrop-blur-xl">
 			<div className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-violet-500/20 to-transparent" />
 
@@ -71,7 +125,7 @@ export function WorkspaceHeader({ isAdmin }: WorkspaceHeaderProps) {
 						</TooltipTrigger>
 						<TooltipContent
 							side="bottom"
-							className="border-white/[0.08] bg-[#18181b] text-white"
+							className="border-white/8 bg-[#18181b] text-white"
 						>
 							<p>John Doe, Sarah Kim online</p>
 						</TooltipContent>
@@ -81,12 +135,14 @@ export function WorkspaceHeader({ isAdmin }: WorkspaceHeaderProps) {
 				<Button
 					variant="ghost"
 					size="sm"
+					onClick={handleEndSessionClick}
 					className="gap-2 rounded-lg text-red-400 hover:bg-red-500/10 hover:text-red-300"
 				>
 					<LogOut className="h-4 w-4" />
-					{isAdmin ? "End Session" : "Logout"}
+					{isAdmin ? "End Session" : "Leave"}
 				</Button>
 			</div>
 		</header>
+		</>
 	);
 }

@@ -1,12 +1,14 @@
 export type AssessmentEventType =
-	| "tab_switch"
-	| "paste"
-	| "copy"
-	| "focus_lost"
-	| "focus_gained"
-	| "session_start"
-	| "session_end"
-	| "code_run";
+	| "TAB_SWITCH"
+	| "PASTE"
+	| "COPY"
+	| "FOCUS_LOST"
+	| "FOCUS_GAINED"
+	| "SESSION_START"
+	| "SESSION_END"
+	| "CODE_RUN"
+	| "CODE_CHANGE"
+	| "EXECUTE_CODE";
 
 export interface AssessmentEvent {
 	id: string;

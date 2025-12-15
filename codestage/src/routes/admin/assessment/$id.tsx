@@ -96,14 +96,16 @@ function AssessmentViewPage() {
 
 	const getEventIcon = (type: AssessmentEventType) => {
 		const icons: Record<AssessmentEventType, React.ReactNode> = {
-			tab_switch: <EyeOff className="h-3.5 w-3.5" />,
-			paste: <Clipboard className="h-3.5 w-3.5" />,
-			copy: <Copy className="h-3.5 w-3.5" />,
-			focus_lost: <EyeOff className="h-3.5 w-3.5" />,
-			focus_gained: <Eye className="h-3.5 w-3.5" />,
-			session_start: <LogIn className="h-3.5 w-3.5" />,
-			session_end: <LogOut className="h-3.5 w-3.5" />,
-			code_run: <Play className="h-3.5 w-3.5" />,
+			TAB_SWITCH: <EyeOff className="h-3.5 w-3.5" />,
+			PASTE: <Clipboard className="h-3.5 w-3.5" />,
+			COPY: <Copy className="h-3.5 w-3.5" />,
+			FOCUS_LOST: <EyeOff className="h-3.5 w-3.5" />,
+			FOCUS_GAINED: <Eye className="h-3.5 w-3.5" />,
+			SESSION_START: <LogIn className="h-3.5 w-3.5" />,
+			SESSION_END: <LogOut className="h-3.5 w-3.5" />,
+			CODE_RUN: <Play className="h-3.5 w-3.5" />,
+			CODE_CHANGE: <Activity className="h-3.5 w-3.5" />,
+			EXECUTE_CODE: <Play className="h-3.5 w-3.5" />,
 		};
 		return icons[type];
 	};
@@ -113,53 +115,65 @@ function AssessmentViewPage() {
 			AssessmentEventType,
 			{ bg: string; text: string; border: string; marker: string }
 		> = {
-			tab_switch: {
+			TAB_SWITCH: {
 				bg: "bg-red-500/10",
 				text: "text-red-400",
 				border: "border-red-500/20",
 				marker: "bg-red-500",
 			},
-			paste: {
+			PASTE: {
 				bg: "bg-amber-500/10",
 				text: "text-amber-400",
 				border: "border-amber-500/20",
 				marker: "bg-amber-500",
 			},
-			copy: {
+			COPY: {
 				bg: "bg-orange-500/10",
 				text: "text-orange-400",
 				border: "border-orange-500/20",
 				marker: "bg-orange-500",
 			},
-			focus_lost: {
+			FOCUS_LOST: {
 				bg: "bg-red-500/10",
 				text: "text-red-400",
 				border: "border-red-500/20",
 				marker: "bg-red-500",
 			},
-			focus_gained: {
+			FOCUS_GAINED: {
 				bg: "bg-emerald-500/10",
 				text: "text-emerald-400",
 				border: "border-emerald-500/20",
 				marker: "bg-emerald-500",
 			},
-			session_start: {
+			SESSION_START: {
 				bg: "bg-cyan-500/10",
 				text: "text-cyan-400",
 				border: "border-cyan-500/20",
 				marker: "bg-cyan-500",
 			},
-			session_end: {
+			SESSION_END: {
 				bg: "bg-violet-500/10",
 				text: "text-violet-400",
 				border: "border-violet-500/20",
 				marker: "bg-violet-500",
 			},
-			code_run: {
+			CODE_RUN: {
 				bg: "bg-blue-500/10",
 				text: "text-blue-400",
 				border: "border-blue-500/20",
 				marker: "bg-blue-500",
+			},
+			CODE_CHANGE: {
+				bg: "bg-indigo-500/10",
+				text: "text-indigo-400",
+				border: "border-indigo-500/20",
+				marker: "bg-indigo-500",
+			},
+			EXECUTE_CODE: {
+				bg: "bg-green-500/10",
+				text: "text-green-400",
+				border: "border-green-500/20",
+				marker: "bg-green-500",
 			},
 		};
 		return styles[type];
@@ -167,14 +181,16 @@ function AssessmentViewPage() {
 
 	const getEventLabel = (type: AssessmentEventType) => {
 		const labels: Record<AssessmentEventType, string> = {
-			tab_switch: "Tab Switched",
-			paste: "Content Pasted",
-			copy: "Content Copied",
-			focus_lost: "Window Focus Lost",
-			focus_gained: "Window Focus Gained",
-			session_start: "Session Started",
-			session_end: "Session Ended",
-			code_run: "Code Executed",
+			TAB_SWITCH: "Tab Switched",
+			PASTE: "Content Pasted",
+			COPY: "Content Copied",
+			FOCUS_LOST: "Window Focus Lost",
+			FOCUS_GAINED: "Window Focus Gained",
+			SESSION_START: "Session Started",
+			SESSION_END: "Session Ended",
+			CODE_RUN: "Code Executed",
+			CODE_CHANGE: "Code Changed",
+			EXECUTE_CODE: "Code Executed",
 		};
 		return labels[type];
 	};
@@ -192,133 +208,13 @@ function AssessmentViewPage() {
 		return Math.max(60, Math.floor((end - start) / 1000));
 	}, [assessment?.createdAt, submission]);
 
-	const sampleEvents: AssessmentEvent[] = useMemo(() => {
-		if (submission?.events) return submission.events;
-
-		const baseTime = new Date(assessment?.createdAt || Date.now()).getTime();
-		return [
-			{
-				id: "1",
-				type: "session_start" as AssessmentEventType,
-				timestamp: new Date(baseTime).toISOString(),
-			},
-			{
-				id: "2",
-				type: "paste" as AssessmentEventType,
-				timestamp: new Date(baseTime + 45000).toISOString(),
-				details: "Pasted 45 characters",
-			},
-			{
-				id: "3",
-				type: "code_run" as AssessmentEventType,
-				timestamp: new Date(baseTime + 90000).toISOString(),
-			},
-			{
-				id: "4",
-				type: "tab_switch" as AssessmentEventType,
-				timestamp: new Date(baseTime + 120000).toISOString(),
-				details: "Away for 12 seconds",
-			},
-			{
-				id: "5",
-				type: "focus_gained" as AssessmentEventType,
-				timestamp: new Date(baseTime + 132000).toISOString(),
-			},
-			{
-				id: "6",
-				type: "code_run" as AssessmentEventType,
-				timestamp: new Date(baseTime + 180000).toISOString(),
-			},
-			{
-				id: "7",
-				type: "copy" as AssessmentEventType,
-				timestamp: new Date(baseTime + 210000).toISOString(),
-				details: "Copied 23 characters",
-			},
-			{
-				id: "8",
-				type: "tab_switch" as AssessmentEventType,
-				timestamp: new Date(baseTime + 240000).toISOString(),
-				details: "Away for 8 seconds",
-			},
-			{
-				id: "9",
-				type: "focus_gained" as AssessmentEventType,
-				timestamp: new Date(baseTime + 248000).toISOString(),
-			},
-			{
-				id: "10",
-				type: "code_run" as AssessmentEventType,
-				timestamp: new Date(baseTime + 280000).toISOString(),
-			},
-			{
-				id: "11",
-				type: "session_end" as AssessmentEventType,
-				timestamp: new Date(baseTime + sessionDuration * 1000).toISOString(),
-			},
-		];
-	}, [assessment?.createdAt, submission?.events, sessionDuration]);
+	const events: AssessmentEvent[] = useMemo(() => {
+		return submission?.events ?? [];
+	}, [submission?.events]);
 
 	const codeSnapshots: CodeSnapshot[] = useMemo(() => {
-		if (submission?.codeSnapshots) return submission.codeSnapshots;
-
-		const baseTime = new Date(assessment?.createdAt || Date.now()).getTime();
-		const finalCode =
-			submission?.code ||
-			`function solution(input) {\n  // Your code here\n  return input;\n}`;
-
-		return [
-			{
-				id: "snap-1",
-				timestamp: new Date(baseTime).toISOString(),
-				code: `// Welcome to CodeStage\n// Start coding here...\n\nfunction solution(input) {\n  \n}`,
-			},
-			{
-				id: "snap-2",
-				timestamp: new Date(baseTime + 30000).toISOString(),
-				code: `// Welcome to CodeStage\n// Start coding here...\n\nfunction solution(input) {\n  // Processing input\n  const result = [];\n}`,
-				eventId: "2",
-			},
-			{
-				id: "snap-3",
-				timestamp: new Date(baseTime + 60000).toISOString(),
-				code: `function solution(input) {\n  // Processing input\n  const result = [];\n  \n  for (let i = 0; i < input.length; i++) {\n    result.push(input[i]);\n  }\n}`,
-			},
-			{
-				id: "snap-4",
-				timestamp: new Date(baseTime + 90000).toISOString(),
-				code: `function solution(input) {\n  // Processing input\n  const result = [];\n  \n  for (let i = 0; i < input.length; i++) {\n    result.push(input[i] * 2);\n  }\n  \n  return result;\n}`,
-				eventId: "3",
-			},
-			{
-				id: "snap-5",
-				timestamp: new Date(baseTime + 150000).toISOString(),
-				code: `function solution(input) {\n  // Processing input array\n  const result = [];\n  \n  for (let i = 0; i < input.length; i++) {\n    const value = input[i] * 2;\n    if (value > 10) {\n      result.push(value);\n    }\n  }\n  \n  return result;\n}`,
-			},
-			{
-				id: "snap-6",
-				timestamp: new Date(baseTime + 180000).toISOString(),
-				code: `function solution(input) {\n  // Filter and transform input\n  return input\n    .map(x => x * 2)\n    .filter(x => x > 10);\n}`,
-				eventId: "6",
-			},
-			{
-				id: "snap-7",
-				timestamp: new Date(baseTime + 220000).toISOString(),
-				code: `function solution(input) {\n  // Filter and transform input\n  // Optimized with modern JS\n  return input\n    .map(x => x * 2)\n    .filter(x => x > 10)\n    .sort((a, b) => a - b);\n}`,
-			},
-			{
-				id: "snap-8",
-				timestamp: new Date(baseTime + sessionDuration * 1000).toISOString(),
-				code: finalCode,
-				eventId: "11",
-			},
-		];
-	}, [
-		assessment?.createdAt,
-		submission?.codeSnapshots,
-		submission?.code,
-		sessionDuration,
-	]);
+		return submission?.codeSnapshots ?? [];
+	}, [submission?.codeSnapshots]);
 
 	const getEventTimeOffset = useCallback(
 		(timestamp: string) => {
@@ -350,7 +246,7 @@ function AssessmentViewPage() {
 		const targetTime = baseTime + currentTime * 1000;
 
 		let currentEvent: AssessmentEvent | null = null;
-		for (const event of sampleEvents) {
+		for (const event of events) {
 			const eventTime = new Date(event.timestamp).getTime();
 			if (eventTime <= targetTime) {
 				currentEvent = event;
@@ -359,7 +255,7 @@ function AssessmentViewPage() {
 			}
 		}
 		return currentEvent;
-	}, [assessment?.createdAt, currentTime, sampleEvents]);
+	}, [assessment?.createdAt, currentTime, events]);
 
 	useEffect(() => {
 		const event = getCurrentEvent();
@@ -645,13 +541,13 @@ function AssessmentViewPage() {
 											variant="outline"
 											className="border-white/10 bg-white/5 text-white/60"
 										>
-											{sampleEvents.length}
+											{events.length}
 										</Badge>
 									</div>
 
 									<ScrollArea className="flex-1" ref={eventListRef}>
 										<div className="p-3 space-y-1.5">
-											{sampleEvents.map((event) => {
+											{events.map((event) => {
 												const style = getEventStyle(event.type);
 												const eventOffset = getEventTimeOffset(event.timestamp);
 												const isActive = activeEventId === event.id;
@@ -751,7 +647,7 @@ function AssessmentViewPage() {
 						<div className="rounded-2xl border border-white/8 bg-linear-to-b from-[#0d0d14] to-[#0a0a0f] px-6 py-4 shrink-0">
 							<div className="relative mb-3">
 								<div className="absolute inset-0 flex items-center pointer-events-none">
-									{sampleEvents.map((event) => {
+									{events.map((event) => {
 										const offset = getEventTimeOffset(event.timestamp);
 										const position = (offset / sessionDuration) * 100;
 										const style = getEventStyle(event.type);

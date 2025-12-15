@@ -104,10 +104,26 @@ export const AuthLoadingPage = () => {
 	);
 };
 
-export const InvalidTokenPage = () => {
+interface InvalidTokenPageProps {
+	message?: string;
+	title?: string;
+}
+
+export const InvalidTokenPage = ({ message, title }: InvalidTokenPageProps) => {
 	const handleRefresh = () => {
 		window.location.reload();
 	};
+
+	const displayTitle = title || "Invalid Token";
+	const displayMessage = message || (
+		<>
+			The authentication token provided is either{" "}
+			<span className="text-zinc-300">missing</span>,{" "}
+			<span className="text-zinc-300">expired</span>, or{" "}
+			<span className="text-zinc-300">invalid</span>. Please request a new
+			link to continue.
+		</>
+	);
 
 	return (
 		<main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#0a0a0f]">
@@ -171,15 +187,11 @@ export const InvalidTokenPage = () => {
 				</div>
 
 				<h1 className="mb-4 bg-linear-to-b from-white via-white to-white/60 bg-clip-text text-4xl font-bold tracking-tight text-transparent sm:text-5xl">
-					Invalid Token
+					{displayTitle}
 				</h1>
 
 				<p className="mb-10 max-w-md text-base leading-relaxed text-zinc-400 sm:text-lg">
-					The authentication token provided is either{" "}
-					<span className="text-zinc-300">missing</span>,{" "}
-					<span className="text-zinc-300">expired</span>, or{" "}
-					<span className="text-zinc-300">invalid</span>. Please request a new
-					link to continue.
+					{displayMessage}
 				</p>
 
 				<div className="mb-12 grid w-full max-w-sm grid-cols-3 gap-3">

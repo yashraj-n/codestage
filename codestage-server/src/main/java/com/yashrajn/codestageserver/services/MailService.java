@@ -5,7 +5,7 @@ import com.samskivert.mustache.Template;
 import com.yashrajn.codestageserver.auth.JwtCandidate;
 import com.yashrajn.codestageserver.auth.JwtService;
 import com.yashrajn.codestageserver.auth.JwtAdmin;
-import com.yashrajn.codestageserver.models.dto.CreateAssessmentDTO;
+import com.yashrajn.codestageserver.models.dto.CreateAssessmentRequest;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import org.springframework.beans.factory.annotation.Value;
@@ -38,7 +38,7 @@ public class MailService {
         this.jwtService = jwtService;
     }
 
-    public void sendEmailToCandidate(CreateAssessmentDTO assessmentDTO, JwtAdmin user, String sessionId) throws MessagingException, IOException {
+    public void sendEmailToCandidate(CreateAssessmentRequest assessmentDTO, JwtAdmin user, String sessionId) throws MessagingException, IOException {
         MimeMessage message = mailSender.createMimeMessage();
         MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
         String joinToken = jwtService.generateCandidateJwtToken(sessionId, new JwtCandidate(assessmentDTO.candidateEmail(),
@@ -61,7 +61,7 @@ public class MailService {
         mailSender.send(message);
     }
 
-    private String renderInviteTemplate(CreateAssessmentDTO assessmentDTO, JwtAdmin user, String assessmentLink) throws IOException {
+    private String renderInviteTemplate(CreateAssessmentRequest assessmentDTO, JwtAdmin user, String assessmentLink) throws IOException {
         try (var reader = inviteTemplate.getInputStream()) {
             String templateText = new String(reader.readAllBytes());
             Template template = mustacheCompiler.compile(templateText);

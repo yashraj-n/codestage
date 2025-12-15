@@ -4,10 +4,9 @@ import com.auth0.jwt.exceptions.JWTVerificationException;
 import com.yashrajn.codestageserver.auth.JwtAdmin;
 import com.yashrajn.codestageserver.auth.JwtCandidate;
 import com.yashrajn.codestageserver.auth.JwtService;
-import com.yashrajn.codestageserver.models.dto.CreateAssessmentDTO;
+import com.yashrajn.codestageserver.models.dto.CreateAssessmentRequest;
 import com.yashrajn.codestageserver.models.entity.Assessment;
 import com.yashrajn.codestageserver.repository.AssessmentRepository;
-import jakarta.mail.MessagingException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -40,7 +39,7 @@ public class AssessmentService {
     }
 
     @Transactional
-    public void createAssessment(CreateAssessmentDTO payload, JwtAdmin user) {
+    public void createAssessment(CreateAssessmentRequest payload, JwtAdmin user) {
         boolean isValidEmail = VALID_EMAIL_ADDRESS_REGEX.matcher(payload.candidateEmail()).matches();
         if (!isValidEmail) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid Email Address");
@@ -93,9 +92,16 @@ public class AssessmentService {
     public JwtCandidate checkCandidateToken(String authorization) {
         try {
             authorization = authorization.replace("Bearer ", "");
-            return jwtService.validateCandidateJwtToken(authorization);
+            JwtCandidate candidate = jwtService.validateCandidateJwtToken(authorization);
+            Assessment assessment = repo.findById(Integer.valueOf(candidate.getSessionId())).orElseThrow(() ->
+                    new ResponseStatusException(HttpStatus.NOT_FOUND, "Assessment now found"));
+            if (assessment.getCompleted()) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Assessment already completed");
+            }
+            return candidate;
         } catch (JWTVerificationException e) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid or Expired JWT token");
         }
     }
+
 }

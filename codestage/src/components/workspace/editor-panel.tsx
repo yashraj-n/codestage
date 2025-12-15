@@ -152,6 +152,8 @@ interface EditorPanelProps {
 	stompClient?: Client;
 	isAdmin?: boolean;
 	onRemoteDrawChange?: (handler: (changes: unknown) => void) => void;
+	onCopy?: (text: string) => void;
+	onPaste?: (text: string) => void;
 }
 
 const FONT_SIZE_OPTIONS = [12, 14, 16, 18, 20, 22, 24] as const;
@@ -171,6 +173,8 @@ export function EditorPanel({
 	stompClient,
 	isAdmin = false,
 	onRemoteDrawChange,
+	onCopy,
+	onPaste,
 }: EditorPanelProps) {
 	const [internalLanguage, setInternalLanguage] = useState("JavaScript");
 	const language = controlledLanguage ?? internalLanguage;
@@ -274,6 +278,43 @@ export function EditorPanel({
 			editorRef.current.updateOptions({ fontSize });
 		}
 	}, [fontSize]);
+
+	useEffect(() => {
+		const editor = editorRef.current;
+		if (!editor) return;
+
+		const handleEditorCopy = () => {
+			const selection = editor.getSelection();
+			if (selection) {
+				const model = editor.getModel();
+				if (model) {
+					const text = model.getValueInRange(selection);
+					if (text.length > 0) {
+						onCopy?.(text);
+					}
+				}
+			}
+		};
+
+		const handleEditorPaste = (e: ClipboardEvent) => {
+			// Check if the editor or its container is focused
+			const domNode = editor.getDomNode();
+			if (!domNode?.contains(document.activeElement)) return;
+			
+			const text = e.clipboardData?.getData("text") || "";
+			if (text.length > 0) {
+				onPaste?.(text);
+			}
+		};
+
+		window.addEventListener("copy", handleEditorCopy, true);
+		window.addEventListener("paste", handleEditorPaste, true);
+
+		return () => {
+			window.removeEventListener("copy", handleEditorCopy, true);
+			window.removeEventListener("paste", handleEditorPaste, true);
+		};
+	}, [onCopy, onPaste]);
 
 	const handleIncreaseFontSize = () => {
 		const currentIndex = FONT_SIZE_OPTIONS.indexOf(

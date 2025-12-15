@@ -2,7 +2,10 @@ package com.yashrajn.codestageserver.controllers.ws;
 
 import com.yashrajn.codestageserver.models.dto.Judge0Request;
 import com.yashrajn.codestageserver.models.dto.Judge0Response;
-import com.yashrajn.codestageserver.services.CodeChangeService;
+import com.yashrajn.codestageserver.models.entity.WorkspaceEventType;
+import com.yashrajn.codestageserver.models.ws.EndSessionEvent;
+import com.yashrajn.codestageserver.models.ws.WsWorkspaceEvent;
+import com.yashrajn.codestageserver.services.WorkspaceService;
 import com.yashrajn.codestageserver.services.CodeExecutionService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.handler.annotation.DestinationVariable;
@@ -10,16 +13,17 @@ import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.handler.annotation.SendTo;
 import org.springframework.stereotype.Controller;
+import tools.jackson.databind.ObjectMapper;
 
 @Controller
 @Slf4j
 public class WebSocketMessageController {
 
-    private final CodeChangeService codeChangeService;
+    private final WorkspaceService workspaceService;
     private final CodeExecutionService codeExecutionService;
 
-    public WebSocketMessageController(CodeChangeService codeChangeService, CodeExecutionService codeExecutionService) {
-        this.codeChangeService = codeChangeService;
+    public WebSocketMessageController(WorkspaceService codeChangeService, CodeExecutionService codeExecutionService) {
+        this.workspaceService = codeChangeService;
         this.codeExecutionService = codeExecutionService;
     }
 
@@ -37,23 +41,23 @@ public class WebSocketMessageController {
 
     @MessageMapping("/{sessionId}/language-switch")
     @SendTo("/topic/{sessionId}/language-switch")
-    public String languageSwitch(
-            @Payload String lang
-    ) {
+    public String languageSwitch(@Payload String lang) {
         return lang;
     }
 
     @MessageMapping("/{sessionId}/code-change")
     @SendTo("/topic/{sessionId}/code-change")
     public String codeChange(@Payload String code, @DestinationVariable String sessionId) {
-        codeChangeService.createCodeChange(sessionId, code);
+        workspaceService.createWorkspaceEventWithBuffer(sessionId, code, WorkspaceEventType.CODE_CHANGE);
         return code;
     }
 
     @MessageMapping("/{sessionId}/execute-code")
     @SendTo("/topic/{sessionId}/execute-code")
-    public Judge0Response codeExecute(@Payload Judge0Request code) {
-       return codeExecutionService.executeCode(code);
+    public Judge0Response codeExecute(@Payload Judge0Request code, @DestinationVariable String sessionId) {
+        Judge0Response response =  codeExecutionService.executeCode(code);
+        workspaceService.createWorkspaceEvent(sessionId, new ObjectMapper().writeValueAsString(response), WorkspaceEventType.EXECUTE_CODE);
+        return response;
     }
 
     @MessageMapping("/{sessionId}/caret-move")
@@ -64,8 +68,23 @@ public class WebSocketMessageController {
 
     @MessageMapping("/{sessionId}/draw-diff")
     @SendTo("/topic/{sessionId}/draw-diff")
-    public String caretMove(@Payload String message) {
+    public String drawDiff(@Payload String message) {
         return message;
     }
+
+    @MessageMapping("/{sessionId}/events")
+    @SendTo("/topic/{sessionId}/events")
+    public WsWorkspaceEvent events(@Payload WsWorkspaceEvent message, @DestinationVariable String sessionId) {
+        workspaceService.createWorkspaceEvent(sessionId, message.getDetails(), message.getType());
+        return message;
+    }
+
+    @MessageMapping("/{sessionId}/end-session")
+    @SendTo("/topic/{sessionId}/end-session")
+    public EndSessionEvent endSession(@Payload EndSessionEvent message, @DestinationVariable String sessionId) {
+        workspaceService.endSession(sessionId, message);
+        return message;
+    }
+
 
 }

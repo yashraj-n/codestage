@@ -1,11 +1,23 @@
 "use client";
 
 import type { Message } from "@stomp/stompjs";
+import { Link } from "@tanstack/react-router";
+import { CheckCircle2, ClipboardCheck, PartyPopper } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
+import { Button } from "@/components/ui/button";
+import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogFooter,
+	DialogHeader,
+	DialogTitle,
+} from "@/components/ui/dialog";
 import type { AssessmentEvent, AssessmentEventType } from "@/lib/assessments";
 import { JUDGE0_LANGUAGE_INDEX, languageConfig } from "@/lib/editor-languages";
 import type {
+	EndSessionEvent,
 	Judge0Request,
 	Judge0Response,
 	RemoteCursorProps,
@@ -106,6 +118,7 @@ console.log(solution([1, 2, 3]));`);
 	const runTimeoutRef = useRef<number | null>(null);
 	const [isRunning, setIsRunning] = useState(false);
 	const [remoteCaretPos, setRemoteCaretPos] = useState({ lineNumber: 1, column: 1 });
+	const [sessionEnded, setSessionEnded] = useState(false);
 
 	const [remoteCursorPos, setRemoteCursorPos] = useState(INITIAL_CURSOR_POS);
 	const cursorRefs = {
@@ -119,6 +132,31 @@ console.log(solution([1, 2, 3]));`);
 	const containerRef = useRef<HTMLDivElement>(null);
 	const remoteDrawChangeHandlerRef = useRef<((changes: unknown) => void) | null>(
 		null,
+	);
+
+	const addEvent = useCallback(
+		(type: AssessmentEventType, details?: string) => {
+			const timestamp = new Date().toISOString();
+			const newEvent: AssessmentEvent = {
+				id: crypto.randomUUID(),
+				type,
+				timestamp,
+				details,
+			};
+			setEvents((prev) => [...prev, newEvent]);
+
+			if (!user.isAdmin && stompClient.connected) {
+				stompClient.publish({
+					destination: `/app/${user.sessionId}/events`,
+					body: JSON.stringify({
+						type,
+						details: details ?? null,
+						timestamp,
+					}),
+				});
+			}
+		},
+		[user.isAdmin, user.sessionId, stompClient],
 	);
 
 	useEffect(() => {
@@ -171,9 +209,27 @@ console.log(solution([1, 2, 3]));`);
 				},
 			);
 			subscriptions.push(drawDiffSub);
+
+			const eventsSub = stompClient.subscribe(
+				`/topic/${user.sessionId}/events`,
+				(message: Message) => {
+					try {
+						const event = JSON.parse(message.body);
+						const newEvent: AssessmentEvent = {
+							id: crypto.randomUUID(),
+							type: event.type as AssessmentEventType,
+							timestamp: event.timestamp,
+							details: event.details,
+						};
+						setEvents((prev) => [...prev, newEvent]);
+					} catch (error) {
+						console.error("Error parsing event:", error);
+					}
+				},
+			);
+			subscriptions.push(eventsSub);
 		}
 
-		// Subscribe to execution results (for everyone)
 		const executionSub = stompClient.subscribe(
 			`/topic/${user.sessionId}/execute-code`,
 			(message: Message) => {
@@ -214,6 +270,17 @@ console.log(solution([1, 2, 3]));`);
 			},
 		);
 		subscriptions.push(executionSub);
+
+		const endSessionSub = stompClient.subscribe(
+			`/topic/${user.sessionId}/end-session`,
+			() => {
+				setSessionEnded(true);
+				if (!user.isAdmin) {
+					addEvent("SESSION_END");
+				}
+			},
+		);
+		subscriptions.push(endSessionSub);
 
 		if (!user.isAdmin && SEND_MOUSE) {
 			mouseMoveHandler = (e: MouseEvent) => {
@@ -293,62 +360,42 @@ console.log(solution([1, 2, 3]));`);
 			cursorRefs.lastSendTime,
 			cursorRefs.mouse,
 			cursorRefs.target,
+		addEvent,
 		]);
 
-	const addEvent = useCallback(
-		(type: AssessmentEventType, details?: string) => {
-			const newEvent: AssessmentEvent = {
-				id: crypto.randomUUID(),
-				type,
-				timestamp: new Date().toISOString(),
-				details,
-			};
-			setEvents((prev) => [...prev, newEvent]);
-		},
-		[],
-	);
+	useEffect(() => {
+		if (!user.isAdmin) {
+			addEvent("SESSION_START");
+		}
+	}, [addEvent, user.isAdmin]);
 
 	useEffect(() => {
-		addEvent("session_start");
-	}, [addEvent]);
+		if (user.isAdmin) return;
 
-	useEffect(() => {
 		const handleVisibilityChange = () => {
 			if (document.hidden) {
 				tabSwitchTimeRef.current = Date.now();
-				addEvent("tab_switch", "Switched away from tab");
+				addEvent("TAB_SWITCH", "Switched away from tab");
 			} else if (tabSwitchTimeRef.current) {
 				const awayTime = Math.round(
 					(Date.now() - tabSwitchTimeRef.current) / 1000,
 				);
-				addEvent("focus_gained", `Returned after ${awayTime}s`);
+				addEvent("FOCUS_GAINED", `Returned after ${awayTime}s`);
 				tabSwitchTimeRef.current = null;
 			}
 		};
 
-		const handlePaste = (e: ClipboardEvent) => {
-			const text = e.clipboardData?.getData("text") || "";
-			addEvent("paste", `${text.length} chars`);
-		};
-
-		const handleCopy = () => {
-			const text = window.getSelection()?.toString() || "";
-			addEvent("copy", `${text.length} chars`);
-		};
-
 		document.addEventListener("visibilitychange", handleVisibilityChange);
-		document.addEventListener("paste", handlePaste);
-		document.addEventListener("copy", handleCopy);
 
 		return () => {
 			document.removeEventListener("visibilitychange", handleVisibilityChange);
-			document.removeEventListener("paste", handlePaste);
-			document.removeEventListener("copy", handleCopy);
 		};
-	}, [addEvent]);
+	}, [addEvent, user.isAdmin]);
 
 	const handleRunCode = useCallback(() => {
-		addEvent("code_run");
+		if (!user.isAdmin) {
+			addEvent("CODE_RUN");
+		}
 		setTerminalOutput((prev) => [...prev, "", "$ Running code..."]);
 		setIsRunning(true);
 		if (runTimeoutRef.current) {
@@ -374,7 +421,7 @@ console.log(solution([1, 2, 3]));`);
 				body: JSON.stringify(request),
 			});
 		}
-	}, [addEvent, code, language, stdin, stompClient, user.sessionId]);
+	}, [addEvent, code, language, stdin, stompClient, user.sessionId, user.isAdmin]);
 
 	const handleLanguageChange = useCallback(
 		(newLang: string) => {
@@ -429,92 +476,158 @@ console.log(solution([1, 2, 3]));`);
 		setTerminalOutput(["CodeStage Terminal v1.0"]);
 	};
 
+	const handleEndSession = useCallback(() => {
+		if (stompClient.connected) {
+			const event: EndSessionEvent = {
+				code,
+				notes,
+			};
+			stompClient.publish({
+				destination: `/app/${user.sessionId}/end-session`,
+				body: JSON.stringify(event),
+			});
+		}
+	}, [code, notes, stompClient, user.sessionId]);
+
 	return (
-		<div
-			ref={containerRef}
-			className="relative flex h-screen flex-col overflow-hidden bg-[#09090d]"
-		>
-			{/* Remote Cursor Overlay - shows candidate's cursor position */}
-			{user.isAdmin && (
-				<RemoteCursor
-					name="Candidate"
-					color="#f59e0b"
-					x={remoteCursorPos.x}
-					y={remoteCursorPos.y}
-				/>
-			)}
-
-			<div className="pointer-events-none absolute inset-0 overflow-hidden">
-				<div className="absolute -left-48 -top-48 h-[600px] w-[600px] rounded-full bg-violet-600/8 blur-[150px]" />
-				<div className="absolute -right-48 top-1/3 h-[500px] w-[500px] rounded-full bg-fuchsia-600/6 blur-[130px]" />
-				<div className="absolute bottom-0 left-1/3 h-[400px] w-[400px] rounded-full bg-purple-600/5 blur-[120px]" />
-			</div>
-
-			<div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.01)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.01)_1px,transparent_1px)] bg-size-[64px_64px] mask-[radial-gradient(ellipse_at_center,black_30%,transparent_80%)]" />
-
-			<WorkspaceHeader isAdmin={user.isAdmin ?? false} />
-
-			<div className="relative z-10 flex-1 overflow-hidden p-3">
-				<PanelGroup direction="horizontal" className="h-full gap-3">
-					<Panel defaultSize={15} minSize={12} maxSize={25}>
-						<NotesPanel
-							value={notes}
-							onChange={handleEditNotes}
-							isAdmin={user.isAdmin ?? false}
-						/>
-					</Panel>
-
-					<PanelResizeHandle className="group relative w-1.5 rounded-full transition-all hover:w-2 hover:bg-violet-500/20 active:bg-violet-500/30">
-						<div className="absolute inset-y-4 left-1/2 w-px -translate-x-1/2 rounded-full bg-white/6 transition-colors group-hover:bg-violet-500/50 group-active:bg-violet-500" />
-					</PanelResizeHandle>
-
-					<Panel defaultSize={40} minSize={30}>
-						<EditorPanel
-							value={code}
-							onChange={handleCodeChange}
-							onRun={handleRunCode}
-							sessionId={user.sessionId ?? ""}
-							readOnly={user.isAdmin ?? false}
-							isRunning={isRunning}
-							language={language}
-							onLanguageChange={handleLanguageChange}
-							onCaretChange={handleCaretChange}
-							remoteCursorPosition={user.isAdmin ? remoteCaretPos : undefined}
-							showRemoteCursor={user.isAdmin}
-							stompClient={stompClient}
-							isAdmin={user.isAdmin ?? false}
-							onRemoteDrawChange={(handler) => {
-								remoteDrawChangeHandlerRef.current = handler;
-							}}
-						/>
-					</Panel>
-
-					<PanelResizeHandle className="group relative w-1.5 rounded-full transition-all hover:w-2 hover:bg-fuchsia-500/20 active:bg-fuchsia-500/30">
-						<div className="absolute inset-y-4 left-1/2 w-px -translate-x-1/2 rounded-full bg-white/6 transition-colors group-hover:bg-fuchsia-500/50 group-active:bg-fuchsia-500" />
-					</PanelResizeHandle>
-
-					<Panel defaultSize={30} minSize={15} maxSize={40}>
-						<TerminalPanel
-							output={terminalOutput}
-							onClear={handleClearTerminal}
-							stdin={stdin}
-							onStdinChange={setStdin}
-						/>
-					</Panel>
-
-					{user.isAdmin && (
+		<>
+			<Dialog open={sessionEnded}>
+				<DialogContent
+					showCloseButton={false}
+					className="border-white/10 bg-[#0d0d14] text-white sm:max-w-md"
+				>
+					{user.isAdmin ? (
 						<>
-							<PanelResizeHandle className="group relative w-1.5 rounded-full transition-all hover:w-2 hover:bg-rose-500/20 active:bg-rose-500/30">
-								<div className="absolute inset-y-4 left-1/2 w-px -translate-x-1/2 rounded-full bg-white/6 transition-colors group-hover:bg-rose-500/50 group-active:bg-rose-500" />
-							</PanelResizeHandle>
-
-							<Panel defaultSize={15} minSize={12} maxSize={25}>
-								<EventsPanel events={events} isAdmin={user.isAdmin} />
-							</Panel>
+							<DialogHeader className="items-center text-center">
+								<div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-linear-to-br from-emerald-500/20 to-green-500/20 ring-1 ring-emerald-500/30">
+									<ClipboardCheck className="h-8 w-8 text-emerald-400" />
+								</div>
+								<DialogTitle className="text-2xl text-white">
+									Session Ended
+								</DialogTitle>
+								<DialogDescription className="text-white/60">
+									You have successfully ended this assessment session. The candidate's submission has been recorded.
+								</DialogDescription>
+							</DialogHeader>
+							<DialogFooter className="mt-4 sm:justify-center">
+								<Link to="/admin/dashboard">
+									<Button className="gap-2 bg-linear-to-r from-violet-500 to-purple-600 text-white hover:from-violet-400 hover:to-purple-500">
+										<CheckCircle2 className="h-4 w-4" />
+										View Results
+									</Button>
+								</Link>
+							</DialogFooter>
+						</>
+					) : (
+						<>
+							<DialogHeader className="items-center text-center">
+								<div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-linear-to-br from-violet-500/20 to-purple-500/20 ring-1 ring-violet-500/30">
+									<PartyPopper className="h-8 w-8 text-violet-400" />
+								</div>
+								<DialogTitle className="text-2xl text-white">
+									Session Complete!
+								</DialogTitle>
+								<DialogDescription className="text-white/60">
+									Thank you for completing the assessment. Your submission has been recorded and will be reviewed by the team.
+								</DialogDescription>
+							</DialogHeader>
+							<div className="mt-4 rounded-xl border border-white/10 bg-white/5 p-4 text-center">
+								<p className="text-sm text-white/50">
+									You may now close this window.
+								</p>
+							</div>
 						</>
 					)}
-				</PanelGroup>
+				</DialogContent>
+			</Dialog>
+
+			<div
+				ref={containerRef}
+				className="relative flex h-screen flex-col overflow-hidden bg-[#09090d]"
+			>
+				{user.isAdmin && (
+					<RemoteCursor
+						name="Candidate"
+						color="#f59e0b"
+						x={remoteCursorPos.x}
+						y={remoteCursorPos.y}
+					/>
+				)}
+
+				<div className="pointer-events-none absolute inset-0 overflow-hidden">
+					<div className="absolute -left-48 -top-48 h-[600px] w-[600px] rounded-full bg-violet-600/8 blur-[150px]" />
+					<div className="absolute -right-48 top-1/3 h-[500px] w-[500px] rounded-full bg-fuchsia-600/6 blur-[130px]" />
+					<div className="absolute bottom-0 left-1/3 h-[400px] w-[400px] rounded-full bg-purple-600/5 blur-[120px]" />
+				</div>
+
+				<div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.01)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.01)_1px,transparent_1px)] bg-size-[64px_64px] mask-[radial-gradient(ellipse_at_center,black_30%,transparent_80%)]" />
+
+				<WorkspaceHeader isAdmin={user.isAdmin ?? false} onEndSession={handleEndSession} />
+
+				<div className="relative z-10 flex-1 overflow-hidden p-3">
+					<PanelGroup direction="horizontal" className="h-full gap-3">
+						<Panel defaultSize={15} minSize={12} maxSize={25}>
+							<NotesPanel
+								value={notes}
+								onChange={handleEditNotes}
+								isAdmin={user.isAdmin ?? false}
+							/>
+						</Panel>
+
+						<PanelResizeHandle className="group relative w-1.5 rounded-full transition-all hover:w-2 hover:bg-violet-500/20 active:bg-violet-500/30">
+							<div className="absolute inset-y-4 left-1/2 w-px -translate-x-1/2 rounded-full bg-white/6 transition-colors group-hover:bg-violet-500/50 group-active:bg-violet-500" />
+						</PanelResizeHandle>
+
+						<Panel defaultSize={40} minSize={30}>
+							<EditorPanel
+								value={code}
+								onChange={handleCodeChange}
+								onRun={handleRunCode}
+								sessionId={user.sessionId ?? ""}
+								readOnly={user.isAdmin ?? false}
+								isRunning={isRunning}
+								language={language}
+								onLanguageChange={handleLanguageChange}
+								onCaretChange={handleCaretChange}
+								remoteCursorPosition={user.isAdmin ? remoteCaretPos : undefined}
+								showRemoteCursor={user.isAdmin}
+								stompClient={stompClient}
+								isAdmin={user.isAdmin ?? false}
+								onRemoteDrawChange={(handler) => {
+									remoteDrawChangeHandlerRef.current = handler;
+								}}
+								onCopy={!user.isAdmin ? (text) => addEvent("COPY", `${text.length} chars`) : undefined}
+								onPaste={!user.isAdmin ? (text) => addEvent("PASTE", `${text.length} chars`) : undefined}
+							/>
+						</Panel>
+
+						<PanelResizeHandle className="group relative w-1.5 rounded-full transition-all hover:w-2 hover:bg-fuchsia-500/20 active:bg-fuchsia-500/30">
+							<div className="absolute inset-y-4 left-1/2 w-px -translate-x-1/2 rounded-full bg-white/6 transition-colors group-hover:bg-fuchsia-500/50 group-active:bg-fuchsia-500" />
+						</PanelResizeHandle>
+
+						<Panel defaultSize={30} minSize={15} maxSize={40}>
+							<TerminalPanel
+								output={terminalOutput}
+								onClear={handleClearTerminal}
+								stdin={stdin}
+								onStdinChange={setStdin}
+							/>
+						</Panel>
+
+						{user.isAdmin && (
+							<>
+								<PanelResizeHandle className="group relative w-1.5 rounded-full transition-all hover:w-2 hover:bg-rose-500/20 active:bg-rose-500/30">
+									<div className="absolute inset-y-4 left-1/2 w-px -translate-x-1/2 rounded-full bg-white/6 transition-colors group-hover:bg-rose-500/50 group-active:bg-rose-500" />
+								</PanelResizeHandle>
+
+								<Panel defaultSize={15} minSize={12} maxSize={25}>
+									<EventsPanel events={events} isAdmin={user.isAdmin} />
+								</Panel>
+							</>
+						)}
+					</PanelGroup>
+				</div>
 			</div>
-		</div>
+		</>
 	);
 }

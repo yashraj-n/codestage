@@ -27,3 +27,8 @@ export interface WorkspaceLayoutProps {
 	user: JwtCandidate;
 	stompClient: Client;
 }
+
+export interface EndSessionEvent {
+	code: string;
+	notes: string;
+}

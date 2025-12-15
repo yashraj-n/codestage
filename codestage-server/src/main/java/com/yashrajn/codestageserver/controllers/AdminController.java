@@ -13,12 +13,6 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/admin")
 @SecurityRequirement(name = "bearerAuth")
 public class AdminController {
-    private final CodeExecutionService test;
-
-    public AdminController(CodeExecutionService test) {
-        this.test = test;
-    }
-
     @GetMapping("/me")
     public JwtAdmin getAdmin(@AuthenticationPrincipal JwtAdmin user) {
         return user;
