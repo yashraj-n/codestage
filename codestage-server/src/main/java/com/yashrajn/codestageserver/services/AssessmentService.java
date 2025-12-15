@@ -66,7 +66,7 @@ public class AssessmentService {
     }
 
     public List<Assessment> getAllAssessments(String userId) {
-        return repo.findByAdminId(userId);
+        return repo.findByAdminIdOrderByCreatedAtDesc(userId);
     }
 
     public String createAssessmentJoinToken(String sessionId, JwtAdmin user) {
