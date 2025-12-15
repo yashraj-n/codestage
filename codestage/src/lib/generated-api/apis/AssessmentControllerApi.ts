@@ -16,23 +16,30 @@
 import * as runtime from '../runtime';
 import type {
   Assessment,
-  CreateAssessmentDTO,
+  CreateAssessmentRequest,
+  EventsResponse,
   JwtCandidate,
 } from '../models/index';
 import {
     AssessmentFromJSON,
     AssessmentToJSON,
-    CreateAssessmentDTOFromJSON,
-    CreateAssessmentDTOToJSON,
+    CreateAssessmentRequestFromJSON,
+    CreateAssessmentRequestToJSON,
+    EventsResponseFromJSON,
+    EventsResponseToJSON,
     JwtCandidateFromJSON,
     JwtCandidateToJSON,
 } from '../models/index';
 
-export interface CreateAssessmentRequest {
-    createAssessmentDTO: CreateAssessmentDTO;
+export interface CreateAssessmentOperationRequest {
+    createAssessmentRequest: CreateAssessmentRequest;
 }
 
 export interface CreateJoinTokenRequest {
+    sessionId: string;
+}
+
+export interface ReplayRequest {
     sessionId: string;
 }
 
@@ -70,11 +77,11 @@ export class AssessmentControllerApi extends runtime.BaseAPI {
 
     /**
      */
-    async createAssessmentRaw(requestParameters: CreateAssessmentRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<string>> {
-        if (requestParameters['createAssessmentDTO'] == null) {
+    async createAssessmentRaw(requestParameters: CreateAssessmentOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<string>> {
+        if (requestParameters['createAssessmentRequest'] == null) {
             throw new runtime.RequiredError(
-                'createAssessmentDTO',
-                'Required parameter "createAssessmentDTO" was null or undefined when calling createAssessment().'
+                'createAssessmentRequest',
+                'Required parameter "createAssessmentRequest" was null or undefined when calling createAssessment().'
             );
         }
 
@@ -92,7 +99,7 @@ export class AssessmentControllerApi extends runtime.BaseAPI {
             method: 'POST',
             headers: headerParameters,
             query: queryParameters,
-            body: CreateAssessmentDTOToJSON(requestParameters['createAssessmentDTO']),
+            body: CreateAssessmentRequestToJSON(requestParameters['createAssessmentRequest']),
         }, initOverrides);
 
         if (this.isJsonMime(response.headers.get('content-type'))) {
@@ -104,7 +111,7 @@ export class AssessmentControllerApi extends runtime.BaseAPI {
 
     /**
      */
-    async createAssessment(requestParameters: CreateAssessmentRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<string> {
+    async createAssessment(requestParameters: CreateAssessmentOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<string> {
         const response = await this.createAssessmentRaw(requestParameters, initOverrides);
         return await response.value();
     }
@@ -172,6 +179,41 @@ export class AssessmentControllerApi extends runtime.BaseAPI {
      */
     async getAllAssessments(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<Assessment>> {
         const response = await this.getAllAssessmentsRaw(initOverrides);
+        return await response.value();
+    }
+
+    /**
+     */
+    async replayRaw(requestParameters: ReplayRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<EventsResponse>> {
+        if (requestParameters['sessionId'] == null) {
+            throw new runtime.RequiredError(
+                'sessionId',
+                'Required parameter "sessionId" was null or undefined when calling replay().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/assessment/replay/{sessionId}`;
+        urlPath = urlPath.replace(`{${"sessionId"}}`, encodeURIComponent(String(requestParameters['sessionId'])));
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => EventsResponseFromJSON(jsonValue));
+    }
+
+    /**
+     */
+    async replay(requestParameters: ReplayRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<EventsResponse> {
+        const response = await this.replayRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

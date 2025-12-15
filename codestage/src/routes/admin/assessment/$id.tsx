@@ -1,8 +1,10 @@
 import type { Monaco } from "@monaco-editor/react";
 import Editor from "@monaco-editor/react";
+import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import {
 	Activity,
+	AlertCircle,
 	ArrowLeft,
 	Calendar,
 	CheckCircle2,
@@ -20,6 +22,7 @@ import {
 	Mail,
 	Pause,
 	Play,
+	RefreshCw,
 	Rewind,
 	SkipBack,
 	SkipForward,
@@ -32,14 +35,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Slider } from "@/components/ui/slider";
-import {
-	type Assessment,
-	type AssessmentEvent,
-	type AssessmentEventType,
-	type CodeSnapshot,
-	getAssessmentById,
-} from "@/lib/assessments";
-import { languageConfig, setupEditorTheme } from "@/lib/editor-languages";
+import { assessmentsApi } from "@/lib/api-client";
+import { setupEditorTheme } from "@/lib/editor-languages";
+import type { WorkspaceEvent } from "@/lib/generated-api/models/WorkspaceEvent";
+import { WorkspaceEventEventTypeEnum } from "@/lib/generated-api/models/WorkspaceEvent";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/stores/auth-store";
 
@@ -49,188 +48,245 @@ export const Route = createFileRoute("/admin/assessment/$id")({
 
 const PLAYBACK_SPEEDS = [0.5, 1, 1.5, 2, 4];
 
+type EventType = WorkspaceEventEventTypeEnum;
+
+const getEventIcon = (type: EventType) => {
+	const icons: Record<EventType, React.ReactNode> = {
+		[WorkspaceEventEventTypeEnum.TabSwitch]: <EyeOff className="h-3.5 w-3.5" />,
+		[WorkspaceEventEventTypeEnum.Paste]: <Clipboard className="h-3.5 w-3.5" />,
+		[WorkspaceEventEventTypeEnum.Copy]: <Copy className="h-3.5 w-3.5" />,
+		[WorkspaceEventEventTypeEnum.FocusLost]: <EyeOff className="h-3.5 w-3.5" />,
+		[WorkspaceEventEventTypeEnum.FocusGained]: <Eye className="h-3.5 w-3.5" />,
+		[WorkspaceEventEventTypeEnum.SessionStart]: (
+			<LogIn className="h-3.5 w-3.5" />
+		),
+		[WorkspaceEventEventTypeEnum.SessionEnd]: (
+			<LogOut className="h-3.5 w-3.5" />
+		),
+		[WorkspaceEventEventTypeEnum.CodeRun]: <Play className="h-3.5 w-3.5" />,
+		[WorkspaceEventEventTypeEnum.CodeChange]: (
+			<Activity className="h-3.5 w-3.5" />
+		),
+		[WorkspaceEventEventTypeEnum.ExecuteCode]: (
+			<Terminal className="h-3.5 w-3.5" />
+		),
+	};
+	return icons[type];
+};
+
+const getEventStyle = (type: EventType) => {
+	const styles: Record<
+		EventType,
+		{ bg: string; text: string; border: string; marker: string }
+	> = {
+		[WorkspaceEventEventTypeEnum.TabSwitch]: {
+			bg: "bg-red-500/10",
+			text: "text-red-400",
+			border: "border-red-500/20",
+			marker: "bg-red-500",
+		},
+		[WorkspaceEventEventTypeEnum.Paste]: {
+			bg: "bg-amber-500/10",
+			text: "text-amber-400",
+			border: "border-amber-500/20",
+			marker: "bg-amber-500",
+		},
+		[WorkspaceEventEventTypeEnum.Copy]: {
+			bg: "bg-orange-500/10",
+			text: "text-orange-400",
+			border: "border-orange-500/20",
+			marker: "bg-orange-500",
+		},
+		[WorkspaceEventEventTypeEnum.FocusLost]: {
+			bg: "bg-red-500/10",
+			text: "text-red-400",
+			border: "border-red-500/20",
+			marker: "bg-red-500",
+		},
+		[WorkspaceEventEventTypeEnum.FocusGained]: {
+			bg: "bg-emerald-500/10",
+			text: "text-emerald-400",
+			border: "border-emerald-500/20",
+			marker: "bg-emerald-500",
+		},
+		[WorkspaceEventEventTypeEnum.SessionStart]: {
+			bg: "bg-cyan-500/10",
+			text: "text-cyan-400",
+			border: "border-cyan-500/20",
+			marker: "bg-cyan-500",
+		},
+		[WorkspaceEventEventTypeEnum.SessionEnd]: {
+			bg: "bg-violet-500/10",
+			text: "text-violet-400",
+			border: "border-violet-500/20",
+			marker: "bg-violet-500",
+		},
+		[WorkspaceEventEventTypeEnum.CodeRun]: {
+			bg: "bg-blue-500/10",
+			text: "text-blue-400",
+			border: "border-blue-500/20",
+			marker: "bg-blue-500",
+		},
+		[WorkspaceEventEventTypeEnum.CodeChange]: {
+			bg: "bg-indigo-500/10",
+			text: "text-indigo-400",
+			border: "border-indigo-500/20",
+			marker: "bg-indigo-500",
+		},
+		[WorkspaceEventEventTypeEnum.ExecuteCode]: {
+			bg: "bg-green-500/10",
+			text: "text-green-400",
+			border: "border-green-500/20",
+			marker: "bg-green-500",
+		},
+	};
+	return styles[type];
+};
+
+const getEventLabel = (type: EventType) => {
+	const labels: Record<EventType, string> = {
+		[WorkspaceEventEventTypeEnum.TabSwitch]: "Tab Switched",
+		[WorkspaceEventEventTypeEnum.Paste]: "Content Pasted",
+		[WorkspaceEventEventTypeEnum.Copy]: "Content Copied",
+		[WorkspaceEventEventTypeEnum.FocusLost]: "Window Focus Lost",
+		[WorkspaceEventEventTypeEnum.FocusGained]: "Window Focus Gained",
+		[WorkspaceEventEventTypeEnum.SessionStart]: "Session Started",
+		[WorkspaceEventEventTypeEnum.SessionEnd]: "Session Ended",
+		[WorkspaceEventEventTypeEnum.CodeRun]: "Code Run",
+		[WorkspaceEventEventTypeEnum.CodeChange]: "Code Changed",
+		[WorkspaceEventEventTypeEnum.ExecuteCode]: "Code Executed",
+	};
+	return labels[type];
+};
+
+const formatDate = (date?: Date) => {
+	if (!date) return "N/A";
+	return new Date(date).toLocaleDateString("en-US", {
+		month: "long",
+		day: "numeric",
+		year: "numeric",
+		hour: "2-digit",
+		minute: "2-digit",
+	});
+};
+
+const formatPlaybackTime = (seconds: number) => {
+	const mins = Math.floor(seconds / 60);
+	const secs = Math.floor(seconds % 60);
+	return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
+};
+
 function AssessmentViewPage() {
 	const { id } = Route.useParams();
 	const { admin } = useAuthStore();
 	const navigate = useNavigate();
-	const [assessment, setAssessment] = useState<Assessment | null>(null);
-	const [isLoading, setIsLoading] = useState(true);
 
 	const [isPlaying, setIsPlaying] = useState(false);
 	const [currentTime, setCurrentTime] = useState(0);
 	const [playbackSpeed, setPlaybackSpeed] = useState(1);
-	const [activeEventId, setActiveEventId] = useState<string | null>(null);
+	const [activeEventId, setActiveEventId] = useState<number | null>(null);
 	const playbackRef = useRef<ReturnType<typeof setInterval> | null>(null);
 	const eventListRef = useRef<HTMLDivElement>(null);
+
+	const {
+		data,
+		isLoading,
+		isError,
+		error,
+		refetch,
+	} = useQuery({
+		queryKey: ["assessment-replay", id],
+		queryFn: () => assessmentsApi.replay({ sessionId: id }),
+		enabled: !!admin,
+	});
+
+	const assessment = data?.assessment;
+	const events = useMemo(() => {
+		const rawEvents = data?.events ?? [];
+		return [...rawEvents].sort(
+			(a, b) =>
+				new Date(a.createdAt ?? 0).getTime() -
+				new Date(b.createdAt ?? 0).getTime(),
+		);
+	}, [data?.events]);
 
 	useEffect(() => {
 		if (!admin) {
 			navigate({ to: "/admin" });
-			return;
 		}
-
-		const found = getAssessmentById(id);
-		setAssessment(found || null);
-		setIsLoading(false);
-	}, [admin, id, navigate]);
+	}, [admin, navigate]);
 
 	const handleEditorMount = (_editor: unknown, monaco: Monaco) => {
 		setupEditorTheme(monaco);
 	};
 
-	const formatDate = (dateString: string) => {
-		return new Date(dateString).toLocaleDateString("en-US", {
-			month: "long",
-			day: "numeric",
-			year: "numeric",
-			hour: "2-digit",
-			minute: "2-digit",
-		});
-	};
-
-	const formatPlaybackTime = (seconds: number) => {
-		const mins = Math.floor(seconds / 60);
-		const secs = Math.floor(seconds % 60);
-		return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
-	};
-
-	const getEventIcon = (type: AssessmentEventType) => {
-		const icons: Record<AssessmentEventType, React.ReactNode> = {
-			TAB_SWITCH: <EyeOff className="h-3.5 w-3.5" />,
-			PASTE: <Clipboard className="h-3.5 w-3.5" />,
-			COPY: <Copy className="h-3.5 w-3.5" />,
-			FOCUS_LOST: <EyeOff className="h-3.5 w-3.5" />,
-			FOCUS_GAINED: <Eye className="h-3.5 w-3.5" />,
-			SESSION_START: <LogIn className="h-3.5 w-3.5" />,
-			SESSION_END: <LogOut className="h-3.5 w-3.5" />,
-			CODE_RUN: <Play className="h-3.5 w-3.5" />,
-			CODE_CHANGE: <Activity className="h-3.5 w-3.5" />,
-			EXECUTE_CODE: <Play className="h-3.5 w-3.5" />,
-		};
-		return icons[type];
-	};
-
-	const getEventStyle = (type: AssessmentEventType) => {
-		const styles: Record<
-			AssessmentEventType,
-			{ bg: string; text: string; border: string; marker: string }
-		> = {
-			TAB_SWITCH: {
-				bg: "bg-red-500/10",
-				text: "text-red-400",
-				border: "border-red-500/20",
-				marker: "bg-red-500",
-			},
-			PASTE: {
-				bg: "bg-amber-500/10",
-				text: "text-amber-400",
-				border: "border-amber-500/20",
-				marker: "bg-amber-500",
-			},
-			COPY: {
-				bg: "bg-orange-500/10",
-				text: "text-orange-400",
-				border: "border-orange-500/20",
-				marker: "bg-orange-500",
-			},
-			FOCUS_LOST: {
-				bg: "bg-red-500/10",
-				text: "text-red-400",
-				border: "border-red-500/20",
-				marker: "bg-red-500",
-			},
-			FOCUS_GAINED: {
-				bg: "bg-emerald-500/10",
-				text: "text-emerald-400",
-				border: "border-emerald-500/20",
-				marker: "bg-emerald-500",
-			},
-			SESSION_START: {
-				bg: "bg-cyan-500/10",
-				text: "text-cyan-400",
-				border: "border-cyan-500/20",
-				marker: "bg-cyan-500",
-			},
-			SESSION_END: {
-				bg: "bg-violet-500/10",
-				text: "text-violet-400",
-				border: "border-violet-500/20",
-				marker: "bg-violet-500",
-			},
-			CODE_RUN: {
-				bg: "bg-blue-500/10",
-				text: "text-blue-400",
-				border: "border-blue-500/20",
-				marker: "bg-blue-500",
-			},
-			CODE_CHANGE: {
-				bg: "bg-indigo-500/10",
-				text: "text-indigo-400",
-				border: "border-indigo-500/20",
-				marker: "bg-indigo-500",
-			},
-			EXECUTE_CODE: {
-				bg: "bg-green-500/10",
-				text: "text-green-400",
-				border: "border-green-500/20",
-				marker: "bg-green-500",
-			},
-		};
-		return styles[type];
-	};
-
-	const getEventLabel = (type: AssessmentEventType) => {
-		const labels: Record<AssessmentEventType, string> = {
-			TAB_SWITCH: "Tab Switched",
-			PASTE: "Content Pasted",
-			COPY: "Content Copied",
-			FOCUS_LOST: "Window Focus Lost",
-			FOCUS_GAINED: "Window Focus Gained",
-			SESSION_START: "Session Started",
-			SESSION_END: "Session Ended",
-			CODE_RUN: "Code Executed",
-			CODE_CHANGE: "Code Changed",
-			EXECUTE_CODE: "Code Executed",
-		};
-		return labels[type];
-	};
-
-	const submission = assessment?.submission;
-	const languageId =
-		submission && languageConfig[submission.language]
-			? languageConfig[submission.language].id
-			: "javascript";
+	const sessionStart = useMemo(() => {
+		const startEvent = events.find(
+			(e) => e.eventType === WorkspaceEventEventTypeEnum.SessionStart,
+		);
+		return startEvent?.createdAt
+			? new Date(startEvent.createdAt).getTime()
+			: assessment?.createdAt
+				? new Date(assessment.createdAt).getTime()
+				: Date.now();
+	}, [events, assessment?.createdAt]);
 
 	const sessionDuration = useMemo(() => {
-		if (!submission) return 300;
-		const start = new Date(assessment?.createdAt || Date.now()).getTime();
-		const end = new Date(submission.submittedAt).getTime();
-		return Math.max(60, Math.floor((end - start) / 1000));
-	}, [assessment?.createdAt, submission]);
+		if (events.length === 0) return 300;
+		const endEvent = events.find(
+			(e) => e.eventType === WorkspaceEventEventTypeEnum.SessionEnd,
+		);
+		const lastEvent = events[events.length - 1];
+		const endTime = endEvent?.createdAt ?? lastEvent?.createdAt;
+		if (!endTime) return 300;
+		return Math.max(60, Math.floor((new Date(endTime).getTime() - sessionStart) / 1000));
+	}, [events, sessionStart]);
 
-	const events: AssessmentEvent[] = useMemo(() => {
-		return submission?.events ?? [];
-	}, [submission?.events]);
+	const codeSnapshots = useMemo(() => {
+		return events
+			.filter((e) => e.eventType === WorkspaceEventEventTypeEnum.CodeChange && e.details)
+			.map((e) => ({
+				id: e.id,
+				code: e.details ?? "",
+				timestamp: e.createdAt,
+			}));
+	}, [events]);
 
-	const codeSnapshots: CodeSnapshot[] = useMemo(() => {
-		return submission?.codeSnapshots ?? [];
-	}, [submission?.codeSnapshots]);
+	const terminalOutputs = useMemo(() => {
+		return events
+			.filter((e) => e.eventType === WorkspaceEventEventTypeEnum.ExecuteCode && e.details)
+			.map((e) => {
+				try {
+					const parsed = JSON.parse(e.details ?? "{}");
+					return {
+						id: e.id,
+						stdout: parsed.stdout ?? null,
+						stderr: parsed.stderr ?? null,
+						compile_output: parsed.compile_output ?? null,
+						timestamp: e.createdAt,
+					};
+				} catch {
+					return null;
+				}
+			})
+			.filter(Boolean);
+	}, [events]);
 
 	const getEventTimeOffset = useCallback(
-		(timestamp: string) => {
-			const baseTime = new Date(assessment?.createdAt || Date.now()).getTime();
+		(timestamp?: Date) => {
+			if (!timestamp) return 0;
 			const eventTime = new Date(timestamp).getTime();
-			return Math.max(0, (eventTime - baseTime) / 1000);
+			return Math.max(0, (eventTime - sessionStart) / 1000);
 		},
-		[assessment?.createdAt],
+		[sessionStart],
 	);
 
 	const getCurrentCode = useCallback(() => {
-		const baseTime = new Date(assessment?.createdAt || Date.now()).getTime();
-		const targetTime = baseTime + currentTime * 1000;
+		const targetTime = sessionStart + currentTime * 1000;
 
 		let currentSnapshot = codeSnapshots[0];
 		for (const snapshot of codeSnapshots) {
+			if (!snapshot.timestamp) continue;
 			const snapshotTime = new Date(snapshot.timestamp).getTime();
 			if (snapshotTime <= targetTime) {
 				currentSnapshot = snapshot;
@@ -239,15 +295,31 @@ function AssessmentViewPage() {
 			}
 		}
 		return currentSnapshot?.code || "";
-	}, [assessment?.createdAt, currentTime, codeSnapshots]);
+	}, [sessionStart, currentTime, codeSnapshots]);
+
+	const getCurrentTerminalOutput = useCallback(() => {
+		const targetTime = sessionStart + currentTime * 1000;
+		const outputs: string[] = [];
+
+		for (const output of terminalOutputs) {
+			if (!output?.timestamp) continue;
+			const outputTime = new Date(output.timestamp).getTime();
+			if (outputTime <= targetTime) {
+				if (output.compile_output) outputs.push(`$ Compile: ${output.compile_output}`);
+				if (output.stdout) outputs.push(output.stdout);
+				if (output.stderr) outputs.push(`✗ ${output.stderr}`);
+			}
+		}
+		return outputs;
+	}, [sessionStart, currentTime, terminalOutputs]);
 
 	const getCurrentEvent = useCallback(() => {
-		const baseTime = new Date(assessment?.createdAt || Date.now()).getTime();
-		const targetTime = baseTime + currentTime * 1000;
+		const targetTime = sessionStart + currentTime * 1000;
 
-		let currentEvent: AssessmentEvent | null = null;
+		let currentEvent: WorkspaceEvent | null = null;
 		for (const event of events) {
-			const eventTime = new Date(event.timestamp).getTime();
+			if (!event.createdAt) continue;
+			const eventTime = new Date(event.createdAt).getTime();
 			if (eventTime <= targetTime) {
 				currentEvent = event;
 			} else {
@@ -255,12 +327,12 @@ function AssessmentViewPage() {
 			}
 		}
 		return currentEvent;
-	}, [assessment?.createdAt, currentTime, events]);
+	}, [sessionStart, currentTime, events]);
 
 	useEffect(() => {
 		const event = getCurrentEvent();
 		if (event && event.id !== activeEventId) {
-			setActiveEventId(event.id);
+			setActiveEventId(event.id ?? null);
 		}
 	}, [getCurrentEvent, activeEventId]);
 
@@ -331,18 +403,48 @@ function AssessmentViewPage() {
 	}, []);
 
 	const handleEventClick = useCallback(
-		(event: AssessmentEvent) => {
-			const offset = getEventTimeOffset(event.timestamp);
+		(event: WorkspaceEvent) => {
+			const offset = getEventTimeOffset(event.createdAt);
 			setCurrentTime(offset);
 			setIsPlaying(false);
 		},
 		[getEventTimeOffset],
 	);
 
+	if (!admin) {
+		return (
+			<div className="flex min-h-screen items-center justify-center bg-[#09090d]">
+				<Loader2 className="h-8 w-8 animate-spin text-violet-400" />
+			</div>
+		);
+	}
+
 	if (isLoading) {
 		return (
 			<div className="flex min-h-screen items-center justify-center bg-[#09090d]">
 				<Loader2 className="h-8 w-8 animate-spin text-violet-400" />
+			</div>
+		);
+	}
+
+	if (isError) {
+		return (
+			<div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-[#09090d]">
+				<div className="flex h-16 w-16 items-center justify-center rounded-full bg-red-500/10">
+					<AlertCircle className="h-8 w-8 text-red-400" />
+				</div>
+				<div className="text-center">
+					<h2 className="text-lg font-semibold text-white">
+						Failed to load assessment
+					</h2>
+					<p className="mt-1 text-sm text-white/50">
+						{error instanceof Error ? error.message : "An unexpected error occurred"}
+					</p>
+				</div>
+				<Button onClick={() => refetch()} variant="outline" className="gap-2">
+					<RefreshCw className="h-4 w-4" />
+					Retry
+				</Button>
 			</div>
 		);
 	}
@@ -369,6 +471,7 @@ function AssessmentViewPage() {
 	}
 
 	const currentCode = getCurrentCode();
+	const terminalOutput = getCurrentTerminalOutput();
 
 	return (
 		<div className="flex flex-col h-screen bg-[#09090d] overflow-hidden">
@@ -409,19 +512,31 @@ function AssessmentViewPage() {
 						</div>
 						<Badge
 							variant="outline"
-							className="gap-1.5 border-emerald-500/25 bg-emerald-500/10 text-emerald-400"
+							className={cn(
+								"gap-1.5",
+								assessment.completed
+									? "border-emerald-500/25 bg-emerald-500/10 text-emerald-400"
+									: "border-amber-500/25 bg-amber-500/10 text-amber-400",
+							)}
 						>
-							<CheckCircle2 className="h-3 w-3" />
-							{assessment.status === "completed"
-								? "Completed"
-								: assessment.status}
+							{assessment.completed ? (
+								<>
+									<CheckCircle2 className="h-3 w-3" />
+									Completed
+								</>
+							) : (
+								<>
+									<Clock className="h-3 w-3" />
+									Pending
+								</>
+							)}
 						</Badge>
 					</div>
 				</div>
 			</header>
 
 			<main className="relative z-10 flex-1 overflow-hidden p-3">
-				{submission ? (
+				{assessment.completed ? (
 					<div className="flex h-full flex-col gap-3">
 						<PanelGroup direction="horizontal" className="flex-1 gap-3">
 							<Panel defaultSize={60} minSize={30}>
@@ -442,7 +557,7 @@ function AssessmentViewPage() {
 														variant="outline"
 														className="border-white/10 bg-white/5 text-white/60"
 													>
-														{submission.language}
+														JavaScript
 													</Badge>
 													<div className="h-4 w-px bg-white/10" />
 													<div className="flex items-center gap-1.5 text-xs text-white/50">
@@ -455,7 +570,7 @@ function AssessmentViewPage() {
 											<div className="flex-1 min-h-0">
 												<Editor
 													height="100%"
-													language={languageId}
+													language="javascript"
 													value={currentCode}
 													onMount={handleEditorMount}
 													options={{
@@ -491,8 +606,8 @@ function AssessmentViewPage() {
 											</div>
 											<ScrollArea className="flex-1">
 												<div className="p-4 font-mono text-sm leading-6">
-													{submission.terminalOutput.length > 0 ? (
-														submission.terminalOutput.map((line, idx) => {
+													{terminalOutput.length > 0 ? (
+														terminalOutput.map((line, idx) => {
 															const lineKey = `${idx}-${line.slice(0, 20)}`;
 															return (
 																<div
@@ -503,7 +618,7 @@ function AssessmentViewPage() {
 																			: line.startsWith("✓")
 																				? "text-emerald-400"
 																				: line.startsWith("✗") ||
-																						line.includes("Error")
+																					  line.includes("Error")
 																					? "text-red-400"
 																					: "text-white/60"
 																	}
@@ -545,11 +660,12 @@ function AssessmentViewPage() {
 										</Badge>
 									</div>
 
-									<ScrollArea className="flex-1" ref={eventListRef}>
+									<div className="flex-1 min-h-0 overflow-hidden">
+										<ScrollArea className="h-full" ref={eventListRef}>
 										<div className="p-3 space-y-1.5">
 											{events.map((event) => {
-												const style = getEventStyle(event.type);
-												const eventOffset = getEventTimeOffset(event.timestamp);
+												const style = getEventStyle(event.eventType);
+												const eventOffset = getEventTimeOffset(event.createdAt);
 												const isActive = activeEventId === event.id;
 												const isPast = eventOffset <= currentTime;
 
@@ -563,11 +679,11 @@ function AssessmentViewPage() {
 															isActive
 																? `${style.border} ${style.bg} ring-1 ring-white/10 scale-[1.02]`
 																: isPast
-																	? `border-white/4 bg-white/2 opacity-60`
-																	: `border-white/4 bg-white/2 opacity-40`,
+																	? "border-white/4 bg-white/2 opacity-60"
+																	: "border-white/4 bg-white/2 opacity-40",
 															"hover:opacity-100 hover:bg-white/4 cursor-pointer",
 														)}
-														aria-label={`Jump to ${getEventLabel(event.type)} at ${formatPlaybackTime(eventOffset)}`}
+														aria-label={`Jump to ${getEventLabel(event.eventType)} at ${formatPlaybackTime(eventOffset)}`}
 													>
 														<div
 															className={cn(
@@ -577,7 +693,7 @@ function AssessmentViewPage() {
 																	: "bg-white/5 text-white/40",
 															)}
 														>
-															{getEventIcon(event.type)}
+															{getEventIcon(event.eventType)}
 														</div>
 														<div className="flex-1 min-w-0">
 															<div className="flex items-center justify-between gap-2">
@@ -587,17 +703,19 @@ function AssessmentViewPage() {
 																		isActive ? style.text : "text-white/70",
 																	)}
 																>
-																	{getEventLabel(event.type)}
+																	{getEventLabel(event.eventType)}
 																</span>
 																<span className="text-xs text-white/40 tabular-nums font-mono">
 																	{formatPlaybackTime(eventOffset)}
 																</span>
 															</div>
-															{event.details && (
-																<p className="mt-0.5 text-xs text-white/40 truncate">
-																	{event.details}
-																</p>
-															)}
+															{event.details &&
+																event.eventType !==
+																	WorkspaceEventEventTypeEnum.CodeChange && (
+																	<p className="mt-0.5 text-xs text-white/40 truncate">
+																		{event.details}
+																	</p>
+																)}
 														</div>
 														{isActive && (
 															<div
@@ -611,7 +729,8 @@ function AssessmentViewPage() {
 												);
 											})}
 										</div>
-									</ScrollArea>
+										</ScrollArea>
+									</div>
 								</div>
 							</Panel>
 
@@ -629,9 +748,9 @@ function AssessmentViewPage() {
 									</div>
 									<ScrollArea className="flex-1">
 										<div className="p-4">
-											{submission.notes ? (
+											{assessment.notes ? (
 												<pre className="whitespace-pre-wrap font-mono text-sm leading-relaxed text-white/70">
-													{submission.notes}
+													{assessment.notes}
 												</pre>
 											) : (
 												<p className="text-sm text-white/30">
@@ -648,9 +767,9 @@ function AssessmentViewPage() {
 							<div className="relative mb-3">
 								<div className="absolute inset-0 flex items-center pointer-events-none">
 									{events.map((event) => {
-										const offset = getEventTimeOffset(event.timestamp);
+										const offset = getEventTimeOffset(event.createdAt);
 										const position = (offset / sessionDuration) * 100;
-										const style = getEventStyle(event.type);
+										const style = getEventStyle(event.eventType);
 										return (
 											<div
 												key={event.id}
@@ -662,7 +781,7 @@ function AssessmentViewPage() {
 														: "opacity-50",
 												)}
 												style={{ left: `${position}%` }}
-												title={`${getEventLabel(event.type)} at ${formatPlaybackTime(offset)}`}
+												title={`${getEventLabel(event.eventType)} at ${formatPlaybackTime(offset)}`}
 											/>
 										);
 									})}

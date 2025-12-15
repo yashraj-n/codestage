@@ -5,9 +5,10 @@ All URIs are relative to *http://localhost:3000*
 | Method | HTTP request | Description |
 |------------- | ------------- | -------------|
 | [**checkCandidateToken**](AssessmentControllerApi.md#checkcandidatetoken) | **GET** /assessment/check-token |  |
-| [**createAssessment**](AssessmentControllerApi.md#createassessment) | **POST** /assessment |  |
+| [**createAssessment**](AssessmentControllerApi.md#createassessmentoperation) | **POST** /assessment |  |
 | [**createJoinToken**](AssessmentControllerApi.md#createjointoken) | **GET** /assessment/join/{sessionId} |  |
 | [**getAllAssessments**](AssessmentControllerApi.md#getallassessments) | **GET** /assessment |  |
+| [**replay**](AssessmentControllerApi.md#replay) | **GET** /assessment/replay/{sessionId} |  |
 
 
 
@@ -70,7 +71,7 @@ No authorization required
 
 ## createAssessment
 
-> string createAssessment(createAssessmentDTO)
+> string createAssessment(createAssessmentRequest)
 
 
 
@@ -81,16 +82,16 @@ import {
   Configuration,
   AssessmentControllerApi,
 } from '';
-import type { CreateAssessmentRequest } from '';
+import type { CreateAssessmentOperationRequest } from '';
 
 async function example() {
   console.log("🚀 Testing  SDK...");
   const api = new AssessmentControllerApi();
 
   const body = {
-    // CreateAssessmentDTO
-    createAssessmentDTO: ...,
-  } satisfies CreateAssessmentRequest;
+    // CreateAssessmentRequest
+    createAssessmentRequest: ...,
+  } satisfies CreateAssessmentOperationRequest;
 
   try {
     const data = await api.createAssessment(body);
@@ -109,7 +110,7 @@ example().catch(console.error);
 
 | Name | Type | Description  | Notes |
 |------------- | ------------- | ------------- | -------------|
-| **createAssessmentDTO** | [CreateAssessmentDTO](CreateAssessmentDTO.md) |  | |
+| **createAssessmentRequest** | [CreateAssessmentRequest](CreateAssessmentRequest.md) |  | |
 
 ### Return type
 
@@ -236,6 +237,71 @@ This endpoint does not need any parameter.
 ### Return type
 
 [**Array&lt;Assessment&gt;**](Assessment.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `*/*`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | OK |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## replay
+
+> EventsResponse replay(sessionId)
+
+
+
+### Example
+
+```ts
+import {
+  Configuration,
+  AssessmentControllerApi,
+} from '';
+import type { ReplayRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new AssessmentControllerApi();
+
+  const body = {
+    // string
+    sessionId: sessionId_example,
+  } satisfies ReplayRequest;
+
+  try {
+    const data = await api.replay(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **sessionId** | `string` |  | [Defaults to `undefined`] |
+
+### Return type
+
+[**EventsResponse**](EventsResponse.md)
 
 ### Authorization
 

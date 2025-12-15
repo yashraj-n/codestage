@@ -44,10 +44,8 @@ import {
 } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import { assessmentsApi } from "@/lib/api-client";
-import type {
-	Assessment,
-	CreateAssessmentDTO,
-} from "@/lib/generated-api/models";
+import type { Assessment } from "@/lib/generated-api/models/Assessment";
+import type { CreateAssessmentRequest } from "@/lib/generated-api/models/CreateAssessmentRequest";
 import { useAuthStore } from "@/stores/auth-store";
 
 export const Route = createFileRoute("/admin/dashboard")({
@@ -73,8 +71,8 @@ function AdminDashboard() {
 	});
 
 	const createAssessmentMutation = useMutation({
-		mutationFn: (dto: CreateAssessmentDTO) =>
-			assessmentsApi.createAssessment({ createAssessmentDTO: dto }),
+		mutationFn: (request: CreateAssessmentRequest) =>
+			assessmentsApi.createAssessment({ createAssessmentRequest: request }),
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["assessments"] });
 		},

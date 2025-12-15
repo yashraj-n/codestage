@@ -61,6 +61,18 @@ export interface Assessment {
      * @memberof Assessment
      */
     createdAt?: Date;
+    /**
+     * 
+     * @type {string}
+     * @memberof Assessment
+     */
+    code?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof Assessment
+     */
+    notes?: string;
 }
 
 /**
@@ -87,6 +99,8 @@ export function AssessmentFromJSONTyped(json: any, ignoreDiscriminator: boolean)
         'inviteNotes': json['inviteNotes'] == null ? undefined : json['inviteNotes'],
         'adminId': json['adminId'] == null ? undefined : json['adminId'],
         'createdAt': json['createdAt'] == null ? undefined : (new Date(json['createdAt'])),
+        'code': json['code'] == null ? undefined : json['code'],
+        'notes': json['notes'] == null ? undefined : json['notes'],
     };
 }
 
@@ -108,6 +122,8 @@ export function AssessmentToJSONTyped(value?: Assessment | null, ignoreDiscrimin
         'inviteNotes': value['inviteNotes'],
         'adminId': value['adminId'],
         'createdAt': value['createdAt'] == null ? value['createdAt'] : value['createdAt'].toISOString(),
+        'code': value['code'],
+        'notes': value['notes'],
     };
 }
 

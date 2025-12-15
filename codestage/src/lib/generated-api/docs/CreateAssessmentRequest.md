@@ -1,38 +1,26 @@
 
-# Assessment
+# CreateAssessmentRequest
 
 
 ## Properties
 
 Name | Type
 ------------ | -------------
-`id` | number
-`completed` | boolean
 `candidateName` | string
 `candidateEmail` | string
-`inviteNotes` | string
-`adminId` | string
-`createdAt` | Date
-`code` | string
-`notes` | string
+`assessmentNotes` | string
 
 ## Example
 
 ```typescript
-import type { Assessment } from ''
+import type { CreateAssessmentRequest } from ''
 
 // TODO: Update the object below with actual values
 const example = {
-  "id": null,
-  "completed": null,
   "candidateName": null,
   "candidateEmail": null,
-  "inviteNotes": null,
-  "adminId": null,
-  "createdAt": null,
-  "code": null,
-  "notes": null,
-} satisfies Assessment
+  "assessmentNotes": null,
+} satisfies CreateAssessmentRequest
 
 console.log(example)
 
@@ -41,7 +29,7 @@ const exampleJSON: string = JSON.stringify(example)
 console.log(exampleJSON)
 
 // Parse the JSON string back to an object
-const exampleParsed = JSON.parse(exampleJSON) as Assessment
+const exampleParsed = JSON.parse(exampleJSON) as CreateAssessmentRequest
 console.log(exampleParsed)
 ```
 

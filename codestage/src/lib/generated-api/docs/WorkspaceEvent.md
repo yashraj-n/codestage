@@ -1,5 +1,5 @@
 
-# Assessment
+# WorkspaceEvent
 
 
 ## Properties
@@ -7,32 +7,22 @@
 Name | Type
 ------------ | -------------
 `id` | number
-`completed` | boolean
-`candidateName` | string
-`candidateEmail` | string
-`inviteNotes` | string
-`adminId` | string
+`eventType` | string
+`details` | string
 `createdAt` | Date
-`code` | string
-`notes` | string
 
 ## Example
 
 ```typescript
-import type { Assessment } from ''
+import type { WorkspaceEvent } from ''
 
 // TODO: Update the object below with actual values
 const example = {
   "id": null,
-  "completed": null,
-  "candidateName": null,
-  "candidateEmail": null,
-  "inviteNotes": null,
-  "adminId": null,
+  "eventType": null,
+  "details": null,
   "createdAt": null,
-  "code": null,
-  "notes": null,
-} satisfies Assessment
+} satisfies WorkspaceEvent
 
 console.log(example)
 
@@ -41,7 +31,7 @@ const exampleJSON: string = JSON.stringify(example)
 console.log(exampleJSON)
 
 // Parse the JSON string back to an object
-const exampleParsed = JSON.parse(exampleJSON) as Assessment
+const exampleParsed = JSON.parse(exampleJSON) as WorkspaceEvent
 console.log(exampleParsed)
 ```
 
