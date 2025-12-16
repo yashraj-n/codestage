@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/dialog";
 import type { AssessmentEvent, AssessmentEventType } from "@/lib/assessments";
 import { JUDGE0_LANGUAGE_INDEX, languageConfig } from "@/lib/editor-languages";
+import { generateId } from "@/lib/utils";
 import type {
 	EndSessionEvent,
 	Judge0Request,
@@ -138,7 +139,7 @@ console.log(solution([1, 2, 3]));`);
 		(type: AssessmentEventType, details?: string) => {
 			const timestamp = new Date().toISOString();
 			const newEvent: AssessmentEvent = {
-				id: crypto.randomUUID(),
+				id: generateId(),
 				type,
 				timestamp,
 				details,
@@ -216,7 +217,7 @@ console.log(solution([1, 2, 3]));`);
 					try {
 						const event = JSON.parse(message.body);
 						const newEvent: AssessmentEvent = {
-							id: crypto.randomUUID(),
+							id: generateId(),
 							type: event.type as AssessmentEventType,
 							timestamp: event.timestamp,
 							details: event.details,

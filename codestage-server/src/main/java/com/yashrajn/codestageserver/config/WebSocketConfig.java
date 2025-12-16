@@ -2,6 +2,7 @@ package com.yashrajn.codestageserver.config;
 
 import com.yashrajn.codestageserver.controllers.ws.StompAuthInterceptor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.messaging.simp.config.ChannelRegistration;
 import org.springframework.messaging.simp.config.MessageBrokerRegistry;
@@ -16,9 +17,13 @@ import org.springframework.web.socket.config.annotation.WebSocketTransportRegist
 public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     private final StompAuthInterceptor stompAuthInterceptor;
+    private final String clientUrl;
 
-    public WebSocketConfig(StompAuthInterceptor stompAuthInterceptor) {
+    public WebSocketConfig(
+            StompAuthInterceptor stompAuthInterceptor,
+                         @Value("${client.url}") String clientUrl) {
         this.stompAuthInterceptor = stompAuthInterceptor;
+        this.clientUrl = clientUrl;
     }
 
     @Override
@@ -42,7 +47,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
         registry.addEndpoint("/ws")
-                .setAllowedOrigins("http://localhost:3001")
+                .setAllowedOrigins(clientUrl)
                 .withSockJS();
     }
 

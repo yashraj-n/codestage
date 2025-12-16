@@ -76,8 +76,8 @@ export function TerminalPanel({
 
 			<div className="flex-1 overflow-auto bg-[#0a0a0f] p-4 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-white/10">
 				<div className="font-mono text-sm leading-7">
-					{output.map((line) => (
-						<div key={crypto.randomUUID()} className={getLineClass(line)}>
+					{output.map((line, idx) => (
+						<div key={`${idx}-${line.slice(0, 20)}`} className={getLineClass(line)}>
 							{line || "\u00A0"}
 						</div>
 					))}

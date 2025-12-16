@@ -1,8 +1,7 @@
 "use client";
 
-import { AlertTriangle, Code2, Crown, LogOut, Users } from "lucide-react";
+import { AlertTriangle, Code2, Crown, LogOut } from "lucide-react";
 import { useState } from "react";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,12 +12,6 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "@/components/ui/dialog";
-import {
-	Tooltip,
-	TooltipContent,
-	TooltipProvider,
-	TooltipTrigger,
-} from "@/components/ui/tooltip";
 
 interface WorkspaceHeaderProps {
 	isAdmin: boolean;
@@ -26,7 +19,6 @@ interface WorkspaceHeaderProps {
 }
 
 export function WorkspaceHeader({ isAdmin, onEndSession }: WorkspaceHeaderProps) {
-	const [_copied, _setCopied] = useState(false);
 	const [showConfirmDialog, setShowConfirmDialog] = useState(false);
 
 	const handleEndSessionClick = () => {
@@ -101,37 +93,6 @@ export function WorkspaceHeader({ isAdmin, onEndSession }: WorkspaceHeaderProps)
 			</div>
 
 			<div className="flex items-center gap-2">
-				<TooltipProvider>
-					<Tooltip>
-						<TooltipTrigger asChild>
-							<div className="flex items-center gap-2 rounded-full border border-white/[0.08] bg-white/[0.03] px-3 py-1.5 transition-colors hover:bg-white/[0.05]">
-								<div className="flex -space-x-2">
-									<Avatar className="h-6 w-6 border-2 border-[#0d0d14] ring-1 ring-white/10">
-										<AvatarFallback className="bg-gradient-to-br from-violet-500 to-purple-500 text-[10px] font-medium text-white">
-											JD
-										</AvatarFallback>
-									</Avatar>
-									<Avatar className="h-6 w-6 border-2 border-[#0d0d14] ring-1 ring-white/10">
-										<AvatarFallback className="bg-gradient-to-br from-fuchsia-500 to-pink-500 text-[10px] font-medium text-white">
-											SK
-										</AvatarFallback>
-									</Avatar>
-								</div>
-								<div className="flex items-center gap-1.5">
-									<Users className="h-3.5 w-3.5 text-white/40" />
-									<span className="text-xs font-medium text-white/60">2</span>
-								</div>
-							</div>
-						</TooltipTrigger>
-						<TooltipContent
-							side="bottom"
-							className="border-white/8 bg-[#18181b] text-white"
-						>
-							<p>John Doe, Sarah Kim online</p>
-						</TooltipContent>
-					</Tooltip>
-				</TooltipProvider>
-
 				<Button
 					variant="ghost"
 					size="sm"

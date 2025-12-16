@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import type { JwtUser } from "@/lib/generated-api";
+import type { JwtUser } from "@/lib/generated-api/models/JwtUser";
 
 interface AuthToken {
 	token: string;

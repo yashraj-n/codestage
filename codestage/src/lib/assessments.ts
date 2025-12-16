@@ -1,3 +1,5 @@
+import { generateId } from "./utils";
+
 export type AssessmentEventType =
 	| "TAB_SWITCH"
 	| "PASTE"
@@ -64,10 +66,10 @@ export function addAssessment(
 
 	const newAssessment: Assessment = {
 		...assessment,
-		id: crypto.randomUUID(),
+		id: generateId(),
 		createdAt: new Date().toISOString(),
 		status: "pending",
-		sessionLink: `${window.location.origin}/workspace?session=${crypto.randomUUID().slice(0, 8)}`,
+		sessionLink: `${window.location.origin}/workspace?session=${generateId().slice(0, 8)}`,
 	};
 
 	assessments.unshift(newAssessment);
