@@ -1,0 +1,69 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: codestage-postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-codestage}
+      POSTGRES_USER: ${POSTGRES_USER:-root}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-12345678}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $POSTGRES_USER -d $POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - codestage-network
+
+  server:
+    build:
+      context: ./codestage-server
+      dockerfile: Dockerfile
+    container_name: codestage-server
+    ports:
+      - "3000:3000"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/codestage
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-root}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-12345678}
+      CLIENT_URL: ${CLIENT_URL:-http://localhost:3001}
+      JWT_SECRET: ${JWT_SECRET}
+      SPRING_MAIL_HOST: ${SPRING_MAIL_HOST}
+      SPRING_MAIL_PORT: ${SPRING_MAIL_PORT}
+      SPRING_MAIL_USERNAME: ${SPRING_MAIL_USERNAME}
+      SPRING_MAIL_PASSWORD: ${SPRING_MAIL_PASSWORD}
+      EMAIL_FROM: ${EMAIL_FROM}
+      JUDGE0_API_URL: ${JUDGE0_API_URL}
+      SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_CLIENT_ID: ${SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_CLIENT_ID}
+      SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_CLIENT_SECRET: ${SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_CLIENT_SECRET}
+      
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - codestage-network
+    restart: unless-stopped
+
+  client:
+    build:
+      context: ./codestage-client
+      dockerfile: Dockerfile
+      args:
+        VITE_PUBLIC_SERVER_URL: ${VITE_PUBLIC_SERVER_URL:?VITE_PUBLIC_SERVER_URL environment variable is required}
+    container_name: codestage-client
+    ports:
+      - "3001:3001"
+    depends_on:
+      - server
+    networks:
+      - codestage-network
+    restart: unless-stopped
+
+networks:
+  codestage-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+
