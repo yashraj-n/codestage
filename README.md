@@ -112,9 +112,13 @@ POSTGRES_PASSWORD=your_secure_password
 # JWT (generate with: openssl rand -base64 32)
 JWT_SECRET=your_jwt_secret_here
 
+# Ports (optional, defaults shown)
+SERVER_PORT=9000
+CLIENT_PORT=9001
+
 # URLs
-CLIENT_URL=http://localhost:3001
-VITE_PUBLIC_SERVER_URL=http://localhost:3000
+CLIENT_URL=http://localhost:9001
+VITE_PUBLIC_SERVER_URL=http://localhost:9000
 
 # Google OAuth
 SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_GOOGLE_CLIENT_ID=your_client_id
@@ -136,7 +140,7 @@ JUDGE0_API_URL=https://ce.judge0.com
    - Go to [Google Cloud Console](https://console.cloud.google.com/apis/credentials)
    - Create a project and navigate to **APIs & Services > Credentials**
    - Create OAuth 2.0 Client ID (Web application)
-   - Add authorized redirect URI: `http://localhost:3000/login/oauth2/code/google`
+   - Add authorized redirect URI: `http://localhost:9000/login/oauth2/code/google`
    - Copy credentials to your `.env` file
 
    See [Google OAuth documentation](https://developers.google.com/identity/protocols/oauth2/web-server) for detailed setup.
@@ -160,9 +164,9 @@ docker-compose up --build
 
 6. **Access the application**
 
-   - Frontend: http://localhost:3001
-   - Backend API: http://localhost:3000
-   - Swagger UI: http://localhost:3000/swagger-ui.html
+   - Frontend: http://localhost:9001
+   - Backend API: http://localhost:9000
+   - Swagger UI: http://localhost:9000/swagger-ui.html
 
 <br />
 
@@ -187,7 +191,7 @@ docker run -d --name codestage-postgres \
 ./mvnw spring-boot:run -Dspring-boot.run.profiles=dev
 ```
 
-Server runs on http://localhost:3000
+Server runs on http://localhost:9000
 
 ### Frontend (React + Vite)
 
@@ -198,12 +202,12 @@ cd codestage-client
 
 bun install
 
-export VITE_PUBLIC_SERVER_URL=http://localhost:3000
+export VITE_PUBLIC_SERVER_URL=http://localhost:9000
 
 bun run dev
 ```
 
-Client runs on http://localhost:3001
+Client runs on http://localhost:9001
 
 ### Testing
 
@@ -230,7 +234,7 @@ cd codestage-server
 │                                                                      │
 │  ┌────────────────┐              ┌────────────────┐                 │
 │  │  React Client  │   HTTP/WS    │ Spring Boot API│                 │
-│  │  (Port 3001)   │◄────────────►│  (Port 3000)   │                 │
+│  │  (Port 9001)   │◄────────────►│  (Port 9000)   │                 │
 │  │                │              │                │                 │
 │  │  Monaco Editor │              │  REST API      │                 │
 │  │  TanStack      │              │  WebSocket     │                 │
@@ -330,6 +334,8 @@ Full API documentation available at `/swagger-ui.html` when running locally.
 | `SPRING_MAIL_PASSWORD` | Yes | SMTP password |
 | `EMAIL_FROM` | Yes | Sender email address |
 | `JUDGE0_API_URL` | Yes | Judge0 API endpoint |
+| `SERVER_PORT` | No | Backend port (default: 9000) |
+| `CLIENT_PORT` | No | Frontend port (default: 9001) |
 
 ### Supported Languages
 
@@ -370,7 +376,7 @@ server {
     ssl_certificate_key /path/to/key.pem;
 
     location / {
-        proxy_pass http://localhost:3001;
+        proxy_pass http://localhost:9001;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection 'upgrade';
@@ -378,14 +384,14 @@ server {
     }
 
     location /api/ {
-        proxy_pass http://localhost:3000/;
+        proxy_pass http://localhost:9000/;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header Host $host;
     }
 
     location /ws {
-        proxy_pass http://localhost:3000/ws;
+        proxy_pass http://localhost:9000/ws;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";

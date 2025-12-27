@@ -22,12 +22,13 @@ services:
       dockerfile: Dockerfile
     container_name: codestage-server
     ports:
-      - "3000:3000"
+      - "${SERVER_PORT:-9000}:${SERVER_PORT:-9000}"
     environment:
+      SERVER_PORT: ${SERVER_PORT:-9000}
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/codestage
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-root}
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-12345678}
-      CLIENT_URL: ${CLIENT_URL:-http://localhost:3001}
+      CLIENT_URL: ${CLIENT_URL:-http://localhost:9001}
       JWT_SECRET: ${JWT_SECRET}
       SPRING_MAIL_HOST: ${SPRING_MAIL_HOST}
       SPRING_MAIL_PORT: ${SPRING_MAIL_PORT}
@@ -53,7 +54,9 @@ services:
         VITE_PUBLIC_SERVER_URL: ${VITE_PUBLIC_SERVER_URL:?VITE_PUBLIC_SERVER_URL environment variable is required}
     container_name: codestage-client
     ports:
-      - "3001:3001"
+      - "${CLIENT_PORT:-9001}:${CLIENT_PORT:-9001}"
+    environment:
+      PORT: ${CLIENT_PORT:-9001}
     depends_on:
       - server
     networks:

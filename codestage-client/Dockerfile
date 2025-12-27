@@ -17,5 +17,4 @@ ENV VITE_PUBLIC_SERVER_URL=${VITE_PUBLIC_SERVER_URL}
 RUN bun run build
 RUN bun install -g serve
 
-EXPOSE 3001
-CMD ["serve", "-s", "dist" ,"-p", "3001"]
+CMD serve -s dist -p ${PORT:-9001}
