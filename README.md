@@ -1,5 +1,9 @@
 <p align="center">
-  <img src="assets/logo.png" alt="CodeStage" width="80" />
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/logo-dark-theme.png" />
+    <source media="(prefers-color-scheme: light)" srcset="assets/logo-light-theme.png" />
+    <img src="assets/logo-light-theme.png" alt="CodeStage" width="80" />
+  </picture>
 </p>
 
 <h1 align="center">CodeStage</h1>
@@ -35,7 +39,7 @@
   <img src="assets/demo.gif" alt="CodeStage Demo" width="800" />
 </p>
 
-> [Watch the full demo video](assets/demo.mp4)
+> [Watch the full demo video](https://youtu.be/dcWqru1yc9w)
 
 <br />
 
