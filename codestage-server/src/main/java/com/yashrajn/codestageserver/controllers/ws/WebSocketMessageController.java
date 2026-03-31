@@ -79,6 +79,12 @@ public class WebSocketMessageController {
         return message;
     }
 
+    @MessageMapping("/{sessionId}/webrtc-signal")
+    @SendTo("/topic/{sessionId}/webrtc-signal")
+    public String webrtcSignal(@Payload String message) {
+        return message;
+    }
+
     @MessageMapping("/{sessionId}/end-session")
     @SendTo("/topic/{sessionId}/end-session")
     public EndSessionEvent endSession(@Payload EndSessionEvent message, @DestinationVariable String sessionId) {

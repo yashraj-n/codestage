@@ -10,7 +10,8 @@ export type AssessmentEventType =
 	| "SESSION_END"
 	| "CODE_RUN"
 	| "CODE_CHANGE"
-	| "EXECUTE_CODE";
+	| "EXECUTE_CODE"
+	| "GAZE_AWAY";
 
 export interface AssessmentEvent {
 	id: string;

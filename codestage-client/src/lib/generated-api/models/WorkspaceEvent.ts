@@ -59,7 +59,8 @@ export const WorkspaceEventEventTypeEnum = {
     SessionEnd: 'SESSION_END',
     CodeRun: 'CODE_RUN',
     CodeChange: 'CODE_CHANGE',
-    ExecuteCode: 'EXECUTE_CODE'
+    ExecuteCode: 'EXECUTE_CODE',
+    GazeAway: 'GAZE_AWAY'
 } as const;
 export type WorkspaceEventEventTypeEnum = typeof WorkspaceEventEventTypeEnum[keyof typeof WorkspaceEventEventTypeEnum];
 
