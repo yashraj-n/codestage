@@ -196,7 +196,13 @@ function AssessmentViewPage() {
 	const playbackRef = useRef<ReturnType<typeof setInterval> | null>(null);
 	const eventListRef = useRef<HTMLDivElement>(null);
 
-	const { data, isLoading, isError, error, refetch } = useQuery({
+	const {
+		data,
+		isLoading,
+		isError,
+		error,
+		refetch,
+	} = useQuery({
 		queryKey: ["assessment-replay", id],
 		queryFn: () => assessmentsApi.replay({ sessionId: id }),
 		enabled: !!admin,
@@ -241,18 +247,12 @@ function AssessmentViewPage() {
 		const lastEvent = events[events.length - 1];
 		const endTime = endEvent?.createdAt ?? lastEvent?.createdAt;
 		if (!endTime) return 300;
-		return Math.max(
-			60,
-			Math.floor((new Date(endTime).getTime() - sessionStart) / 1000),
-		);
+		return Math.max(60, Math.floor((new Date(endTime).getTime() - sessionStart) / 1000));
 	}, [events, sessionStart]);
 
 	const codeSnapshots = useMemo(() => {
 		return events
-			.filter(
-				(e) =>
-					e.eventType === WorkspaceEventEventTypeEnum.CodeChange && e.details,
-			)
+			.filter((e) => e.eventType === WorkspaceEventEventTypeEnum.CodeChange && e.details)
 			.map((e) => ({
 				id: e.id,
 				code: e.details ?? "",
@@ -262,10 +262,7 @@ function AssessmentViewPage() {
 
 	const terminalOutputs = useMemo(() => {
 		return events
-			.filter(
-				(e) =>
-					e.eventType === WorkspaceEventEventTypeEnum.ExecuteCode && e.details,
-			)
+			.filter((e) => e.eventType === WorkspaceEventEventTypeEnum.ExecuteCode && e.details)
 			.map((e) => {
 				try {
 					const parsed = JSON.parse(e.details ?? "{}");
@@ -316,8 +313,7 @@ function AssessmentViewPage() {
 			if (!output?.timestamp) continue;
 			const outputTime = new Date(output.timestamp).getTime();
 			if (outputTime <= targetTime) {
-				if (output.compile_output)
-					outputs.push(`$ Compile: ${output.compile_output}`);
+				if (output.compile_output) outputs.push(`$ Compile: ${output.compile_output}`);
 				if (output.stdout) outputs.push(output.stdout);
 				if (output.stderr) outputs.push(`✗ ${output.stderr}`);
 			}
@@ -450,9 +446,7 @@ function AssessmentViewPage() {
 						Failed to load assessment
 					</h2>
 					<p className="mt-1 text-sm text-white/50">
-						{error instanceof Error
-							? error.message
-							: "An unexpected error occurred"}
+						{error instanceof Error ? error.message : "An unexpected error occurred"}
 					</p>
 				</div>
 				<Button onClick={() => refetch()} variant="outline" className="gap-2">
@@ -632,7 +626,7 @@ function AssessmentViewPage() {
 																			: line.startsWith("✓")
 																				? "text-emerald-400"
 																				: line.startsWith("✗") ||
-																						line.includes("Error")
+																					  line.includes("Error")
 																					? "text-red-400"
 																					: "text-white/60"
 																	}
@@ -676,75 +670,73 @@ function AssessmentViewPage() {
 
 									<div className="flex-1 min-h-0 overflow-hidden">
 										<ScrollArea className="h-full" ref={eventListRef}>
-											<div className="p-3 space-y-1.5">
-												{events.map((event) => {
-													const style = getEventStyle(event.eventType);
-													const eventOffset = getEventTimeOffset(
-														event.createdAt,
-													);
-													const isActive = activeEventId === event.id;
-													const isPast = eventOffset <= currentTime;
+										<div className="p-3 space-y-1.5">
+											{events.map((event) => {
+												const style = getEventStyle(event.eventType);
+												const eventOffset = getEventTimeOffset(event.createdAt);
+												const isActive = activeEventId === event.id;
+												const isPast = eventOffset <= currentTime;
 
-													return (
-														<button
-															key={event.id}
-															type="button"
-															onClick={() => handleEventClick(event)}
+												return (
+													<button
+														key={event.id}
+														type="button"
+														onClick={() => handleEventClick(event)}
+														className={cn(
+															"w-full flex items-start gap-3 rounded-xl border p-3 transition-all text-left",
+															isActive
+																? `${style.border} ${style.bg} ring-1 ring-white/10 scale-[1.02]`
+																: isPast
+																	? "border-white/4 bg-white/2 opacity-60"
+																	: "border-white/4 bg-white/2 opacity-40",
+															"hover:opacity-100 hover:bg-white/4 cursor-pointer",
+														)}
+														aria-label={`Jump to ${getEventLabel(event.eventType)} at ${formatPlaybackTime(eventOffset)}`}
+													>
+														<div
 															className={cn(
-																"w-full flex items-start gap-3 rounded-xl border p-3 transition-all text-left",
+																"flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition-colors",
 																isActive
-																	? `${style.border} ${style.bg} ring-1 ring-white/10 scale-[1.02]`
-																	: isPast
-																		? "border-white/4 bg-white/2 opacity-60"
-																		: "border-white/4 bg-white/2 opacity-40",
-																"hover:opacity-100 hover:bg-white/4 cursor-pointer",
+																	? `${style.bg} ${style.text}`
+																	: "bg-white/5 text-white/40",
 															)}
-															aria-label={`Jump to ${getEventLabel(event.eventType)} at ${formatPlaybackTime(eventOffset)}`}
 														>
+															{getEventIcon(event.eventType)}
+														</div>
+														<div className="flex-1 min-w-0">
+															<div className="flex items-center justify-between gap-2">
+																<span
+																	className={cn(
+																		"text-sm font-medium transition-colors",
+																		isActive ? style.text : "text-white/70",
+																	)}
+																>
+																	{getEventLabel(event.eventType)}
+																</span>
+																<span className="text-xs text-white/40 tabular-nums font-mono">
+																	{formatPlaybackTime(eventOffset)}
+																</span>
+															</div>
+															{event.details &&
+																event.eventType !==
+																	WorkspaceEventEventTypeEnum.CodeChange && (
+																	<p className="mt-0.5 text-xs text-white/40 truncate">
+																		{event.details}
+																	</p>
+																)}
+														</div>
+														{isActive && (
 															<div
 																className={cn(
-																	"flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition-colors",
-																	isActive
-																		? `${style.bg} ${style.text}`
-																		: "bg-white/5 text-white/40",
+																	"h-2 w-2 rounded-full animate-pulse",
+																	style.marker,
 																)}
-															>
-																{getEventIcon(event.eventType)}
-															</div>
-															<div className="flex-1 min-w-0">
-																<div className="flex items-center justify-between gap-2">
-																	<span
-																		className={cn(
-																			"text-sm font-medium transition-colors",
-																			isActive ? style.text : "text-white/70",
-																		)}
-																	>
-																		{getEventLabel(event.eventType)}
-																	</span>
-																	<span className="text-xs text-white/40 tabular-nums font-mono">
-																		{formatPlaybackTime(eventOffset)}
-																	</span>
-																</div>
-																{event.details &&
-																	event.eventType !==
-																		WorkspaceEventEventTypeEnum.CodeChange && (
-																		<p className="mt-0.5 text-xs text-white/40 truncate">
-																			{event.details}
-																		</p>
-																	)}
-															</div>
-															{isActive && (
-																<div
-																	className={cn(
-																		"h-2 w-2 rounded-full animate-pulse",
-																		style.marker,
-																	)}
-																/>
-															)}
-														</button>
-													);
-												})}
-											</div>
+															/>
+														)}
+													</button>
+												);
+											})}
+										</div>
 										</ScrollArea>
 									</div>
 								</div>

@@ -14,9 +14,6 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "@/components/ui/dialog";
-import { useCamera } from "@/hooks/use-camera";
-import { useGazeTracker } from "@/hooks/use-gaze-tracker";
-import { useWebRTC } from "@/hooks/use-webrtc";
 import type { AssessmentEvent, AssessmentEventType } from "@/lib/assessments";
 import { JUDGE0_LANGUAGE_INDEX, languageConfig } from "@/lib/editor-languages";
 import { generateId } from "@/lib/utils";
@@ -27,13 +24,16 @@ import type {
 	RemoteCursorProps,
 	WorkspaceLayoutProps,
 } from "@/types/workspace";
-import { CameraFeed } from "./camera-feed";
-import { CameraPermissionGate } from "./camera-permission-gate";
 import { EditorPanel } from "./editor-panel";
 import { EventsPanel } from "./events-panel";
 import { NotesPanel } from "./notes-panel";
 import { TerminalPanel } from "./terminal-panel";
 import { WorkspaceHeader } from "./workspace-header";
+import { CameraFeed } from "./camera-feed";
+import { CameraPermissionGate } from "./camera-permission-gate";
+import { useCamera } from "@/hooks/use-camera";
+import { useWebRTC } from "@/hooks/use-webrtc";
+import { useGazeTracker } from "@/hooks/use-gaze-tracker";
 
 const SMOOTH_FACTOR = 0.5;
 const SEND_THROTTLE = 20;
@@ -123,17 +123,11 @@ console.log(solution([1, 2, 3]));`);
 	const tabSwitchTimeRef = useRef<number | null>(null);
 	const runTimeoutRef = useRef<number | null>(null);
 	const [isRunning, setIsRunning] = useState(false);
-	const [remoteCaretPos, setRemoteCaretPos] = useState({
-		lineNumber: 1,
-		column: 1,
-	});
+	const [remoteCaretPos, setRemoteCaretPos] = useState({ lineNumber: 1, column: 1 });
 	const [sessionEnded, setSessionEnded] = useState(false);
 
-	const {
-		status: cameraStatus,
-		stream: localStream,
-		requestCamera,
-	} = useCamera();
+	const { status: cameraStatus, stream: localStream, requestCamera } = useCamera();
+	const { remoteStream } = useWebRTC(stompClient, user.sessionId ?? "", user.isAdmin ?? false, localStream);
 
 	const [remoteCursorPos, setRemoteCursorPos] = useState(INITIAL_CURSOR_POS);
 	const cursorRefs = {
@@ -145,9 +139,9 @@ console.log(solution([1, 2, 3]));`);
 	};
 
 	const containerRef = useRef<HTMLDivElement>(null);
-	const remoteDrawChangeHandlerRef = useRef<
-		((changes: unknown) => void) | null
-	>(null);
+	const remoteDrawChangeHandlerRef = useRef<((changes: unknown) => void) | null>(
+		null,
+	);
 
 	const addEvent = useCallback(
 		(type: AssessmentEventType, details?: string) => {
@@ -178,19 +172,7 @@ console.log(solution([1, 2, 3]));`);
 		addEvent("GAZE_AWAY", "Candidate looked away from screen");
 	}, [addEvent]);
 
-	const streamWithGaze = useGazeTracker(
-		handleGazeAway,
-		!user.isAdmin,
-		localStream,
-	);
-	const finalLocalStream = streamWithGaze || localStream;
-
-	const { remoteStream } = useWebRTC(
-		stompClient,
-		user.sessionId ?? "",
-		user.isAdmin ?? false,
-		finalLocalStream,
-	);
+	useGazeTracker(handleGazeAway, !user.isAdmin);
 
 	useEffect(() => {
 		const subscriptions: Array<{ unsubscribe: () => void }> = [];
@@ -358,9 +340,10 @@ console.log(solution([1, 2, 3]));`);
 				}
 			};
 
-			const mouseSub = stompClient.subscribe(
+		const mouseSub = stompClient.subscribe(
 				`/topic/${user.sessionId}/mouse`,
 				(message: Message) => {
+			
 					const [nx, ny] = JSON.parse(message.body);
 					cursorRefs.target.current = denormalizeCoordinates(nx, ny);
 					if (!cursorRefs.animationFrame.current) {
@@ -387,13 +370,13 @@ console.log(solution([1, 2, 3]));`);
 		user.isAdmin,
 		user.sessionId,
 		stompClient,
-		cursorRefs.animationFrame,
-		cursorRefs.current,
-		cursorRefs.lastSendTime,
-		cursorRefs.mouse,
-		cursorRefs.target,
+			cursorRefs.animationFrame,
+			cursorRefs.current,
+			cursorRefs.lastSendTime,
+			cursorRefs.mouse,
+			cursorRefs.target,
 		addEvent,
-	]);
+		]);
 
 	useEffect(() => {
 		if (!user.isAdmin) {
@@ -453,15 +436,7 @@ console.log(solution([1, 2, 3]));`);
 				body: JSON.stringify(request),
 			});
 		}
-	}, [
-		addEvent,
-		code,
-		language,
-		stdin,
-		stompClient,
-		user.sessionId,
-		user.isAdmin,
-	]);
+	}, [addEvent, code, language, stdin, stompClient, user.sessionId, user.isAdmin]);
 
 	const handleLanguageChange = useCallback(
 		(newLang: string) => {
@@ -554,8 +529,7 @@ console.log(solution([1, 2, 3]));`);
 									Session Ended
 								</DialogTitle>
 								<DialogDescription className="text-white/60">
-									You have successfully ended this assessment session. The
-									candidate's submission has been recorded.
+									You have successfully ended this assessment session. The candidate's submission has been recorded.
 								</DialogDescription>
 							</DialogHeader>
 							<DialogFooter className="mt-4 sm:justify-center">
@@ -577,8 +551,7 @@ console.log(solution([1, 2, 3]));`);
 									Session Complete!
 								</DialogTitle>
 								<DialogDescription className="text-white/60">
-									Thank you for completing the assessment. Your submission has
-									been recorded and will be reviewed by the team.
+									Thank you for completing the assessment. Your submission has been recorded and will be reviewed by the team.
 								</DialogDescription>
 							</DialogHeader>
 							<div className="mt-4 rounded-xl border border-white/10 bg-white/5 p-4 text-center">
@@ -612,10 +585,7 @@ console.log(solution([1, 2, 3]));`);
 
 				<div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.01)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.01)_1px,transparent_1px)] bg-size-[64px_64px] mask-[radial-gradient(ellipse_at_center,black_30%,transparent_80%)]" />
 
-				<WorkspaceHeader
-					isAdmin={user.isAdmin ?? false}
-					onEndSession={handleEndSession}
-				/>
+				<WorkspaceHeader isAdmin={user.isAdmin ?? false} onEndSession={handleEndSession} />
 
 				<div className="relative z-10 flex-1 overflow-hidden p-3">
 					<PanelGroup direction="horizontal" className="h-full gap-3">
@@ -649,16 +619,8 @@ console.log(solution([1, 2, 3]));`);
 								onRemoteDrawChange={(handler) => {
 									remoteDrawChangeHandlerRef.current = handler;
 								}}
-								onCopy={
-									!user.isAdmin
-										? (text) => addEvent("COPY", `${text.length} chars`)
-										: undefined
-								}
-								onPaste={
-									!user.isAdmin
-										? (text) => addEvent("PASTE", `${text.length} chars`)
-										: undefined
-								}
+								onCopy={!user.isAdmin ? (text) => addEvent("COPY", `${text.length} chars`) : undefined}
+								onPaste={!user.isAdmin ? (text) => addEvent("PASTE", `${text.length} chars`) : undefined}
 							/>
 						</Panel>
 
@@ -698,9 +660,9 @@ console.log(solution([1, 2, 3]));`);
 					</PanelGroup>
 				</div>
 
-				{!user.isAdmin && finalLocalStream && (
+				{!user.isAdmin && localStream && (
 					<div className="fixed bottom-4 right-4 z-50 h-32 w-44">
-						<CameraFeed stream={finalLocalStream} muted label="You" />
+						<CameraFeed stream={localStream} muted label="You" />
 					</div>
 				)}
 			</div>

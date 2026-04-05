@@ -127,10 +127,7 @@ function AdminDashboard() {
 			sessionId: assessment.id?.toString() ?? "",
 		});
 		if (joinToken) {
-			window.open(
-				`${window.location.origin}/workspace?token=${joinToken}`,
-				"_blank",
-			);
+			window.open(`${window.location.origin}/workspace?token=${joinToken}`, "_blank");
 		} else {
 			alert("Failed to create join link");
 		}

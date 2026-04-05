@@ -61,9 +61,7 @@ export function Navbar() {
 							className="group bg-foreground text-background hover:bg-foreground/90 transition-all duration-200"
 						>
 							Get Started
-							<span className="ml-1 inline-block transition-transform duration-200 group-hover:translate-x-1">
-								→
-							</span>
+							<span className="ml-1 inline-block transition-transform duration-200 group-hover:translate-x-1">→</span>
 						</Button>
 					</Link>
 				</div>
@@ -119,9 +117,7 @@ export function Navbar() {
 									className="group w-full bg-foreground text-background hover:bg-foreground/90 transition-all duration-200"
 								>
 									Get Started
-									<span className="ml-1 inline-block transition-transform duration-200 group-hover:translate-x-1">
-										→
-									</span>
+									<span className="ml-1 inline-block transition-transform duration-200 group-hover:translate-x-1">→</span>
 								</Button>
 							</Link>
 						</div>

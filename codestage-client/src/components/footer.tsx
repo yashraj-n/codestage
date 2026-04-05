@@ -28,6 +28,7 @@ export function Footer() {
 								<Github className="h-4 w-4" />
 								<span className="sr-only">GitHub</span>
 							</a>
+						
 						</div>
 					</div>
 

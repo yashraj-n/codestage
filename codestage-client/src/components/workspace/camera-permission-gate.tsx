@@ -34,8 +34,8 @@ export function CameraPermissionGate({
 								Camera Access Required
 							</h2>
 							<p className="mt-2 max-w-sm text-sm text-white/50">
-								Please allow camera access in your browser to continue with the
-								assessment.
+								Please allow camera access in your browser to continue with
+								the assessment.
 							</p>
 						</div>
 					</>

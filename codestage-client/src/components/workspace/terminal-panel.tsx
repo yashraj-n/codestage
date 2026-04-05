@@ -22,6 +22,7 @@ export function TerminalPanel({
 	stdin,
 	onStdinChange,
 }: TerminalPanelProps) {
+
 	const getLineClass = (line: string) => {
 		if (line.startsWith("$")) return "text-violet-400";
 		if (line.startsWith("✓") || line.includes("successfully"))
@@ -76,10 +77,7 @@ export function TerminalPanel({
 			<div className="flex-1 overflow-auto bg-[#0a0a0f] p-4 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-white/10">
 				<div className="font-mono text-sm leading-7">
 					{output.map((line, idx) => (
-						<div
-							key={`${idx}-${line.slice(0, 20)}`}
-							className={getLineClass(line)}
-						>
+						<div key={`${idx}-${line.slice(0, 20)}`} className={getLineClass(line)}>
 							{line || "\u00A0"}
 						</div>
 					))}
