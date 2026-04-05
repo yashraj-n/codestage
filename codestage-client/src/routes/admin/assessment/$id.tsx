@@ -70,6 +70,8 @@ const getEventIcon = (type: EventType) => {
 		[WorkspaceEventEventTypeEnum.ExecuteCode]: (
 			<Terminal className="h-3.5 w-3.5" />
 		),
+		[WorkspaceEventEventTypeEnum.EyeContactLost]: <EyeOff className="h-3.5 w-3.5" />,
+		[WorkspaceEventEventTypeEnum.EyeContactGained]: <Eye className="h-3.5 w-3.5" />,
 	};
 	return icons[type];
 };
@@ -139,6 +141,18 @@ const getEventStyle = (type: EventType) => {
 			border: "border-green-500/20",
 			marker: "bg-green-500",
 		},
+		[WorkspaceEventEventTypeEnum.EyeContactLost]: {
+			bg: "bg-red-500/10",
+			text: "text-red-400",
+			border: "border-red-500/20",
+			marker: "bg-red-500",
+		},
+		[WorkspaceEventEventTypeEnum.EyeContactGained]: {
+			bg: "bg-emerald-500/10",
+			text: "text-emerald-400",
+			border: "border-emerald-500/20",
+			marker: "bg-emerald-500",
+		},
 	};
 	return styles[type];
 };
@@ -155,6 +169,8 @@ const getEventLabel = (type: EventType) => {
 		[WorkspaceEventEventTypeEnum.CodeRun]: "Code Run",
 		[WorkspaceEventEventTypeEnum.CodeChange]: "Code Changed",
 		[WorkspaceEventEventTypeEnum.ExecuteCode]: "Code Executed",
+		[WorkspaceEventEventTypeEnum.EyeContactLost]: "Eye Contact Lost",
+		[WorkspaceEventEventTypeEnum.EyeContactGained]: "Eye Contact Gained",
 	};
 	return labels[type];
 };

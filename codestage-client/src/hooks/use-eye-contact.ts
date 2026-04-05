@@ -1,17 +1,33 @@
 import { useEffect, useRef, useState } from "react";
 import type { RefObject } from "react";
 
-// MediaPipe landmark indices for iris centers
+// ─── MediaPipe Landmark Indices ──────────────────────────────────────────────
+
+// Iris centers (available when refineLandmarks = true)
 const LEFT_IRIS_CENTER = 468;
 const RIGHT_IRIS_CENTER = 473;
 
-// Eye corner landmarks
+// Horizontal eye corners
 const LEFT_EYE_INNER = 133;
 const LEFT_EYE_OUTER = 33;
 const RIGHT_EYE_INNER = 362;
 const RIGHT_EYE_OUTER = 263;
 
-// FACEMESH connector sets for drawing
+// Vertical eye boundaries (top/bottom of each eye)
+const LEFT_EYE_TOP = 159;
+const LEFT_EYE_BOTTOM = 145;
+const RIGHT_EYE_TOP = 386;
+const RIGHT_EYE_BOTTOM = 374;
+
+// Head pose landmarks
+const NOSE_TIP = 1;
+const LEFT_FACE_EDGE = 234;
+const RIGHT_FACE_EDGE = 454;
+const FOREHEAD = 10;
+const CHIN = 152;
+
+// ─── Drawing connector sets ──────────────────────────────────────────────────
+
 const FACEMESH_LEFT_EYE = [
 	[33, 7], [7, 163], [163, 144], [144, 145], [145, 153],
 	[153, 154], [154, 155], [155, 133], [133, 173], [173, 157],
@@ -32,8 +48,23 @@ const FACEMESH_RIGHT_IRIS = [
 	[473, 474], [474, 475], [475, 476], [476, 477], [477, 473],
 ];
 
+// ─── Thresholds ──────────────────────────────────────────────────────────────
+
 const DEBOUNCE_MS = 1500;
-const GAZE_THRESHOLD = 0.38;
+
+// Horizontal iris offset: 0 = perfectly centered, 0.5 = at corner
+const HORIZONTAL_GAZE_THRESHOLD = 0.28;
+
+// Vertical iris offset: same idea but for up/down
+const VERTICAL_GAZE_THRESHOLD = 0.32;
+
+// Head yaw: nose position relative to face center (0 = centered, 0.5 = fully turned)
+const HEAD_YAW_THRESHOLD = 0.3;
+
+// Head pitch: nose position relative to forehead-chin midpoint
+const HEAD_PITCH_THRESHOLD = 0.28;
+
+// ─── Types ───────────────────────────────────────────────────────────────────
 
 interface UseEyeContactOptions {
 	videoRef: RefObject<HTMLVideoElement | null>;
@@ -42,8 +73,12 @@ interface UseEyeContactOptions {
 	enabled?: boolean;
 }
 
-function computeGazeRatio(
-	landmarks: { x: number; y: number; z: number }[],
+type Landmark = { x: number; y: number; z: number };
+
+// ─── Gaze computation ────────────────────────────────────────────────────────
+
+function computeHorizontalGaze(
+	landmarks: Landmark[],
 	irisIdx: number,
 	innerIdx: number,
 	outerIdx: number,
@@ -51,17 +86,90 @@ function computeGazeRatio(
 	const iris = landmarks[irisIdx];
 	const inner = landmarks[innerIdx];
 	const outer = landmarks[outerIdx];
-
 	if (!iris || !inner || !outer) return 0.5;
 
 	const eyeWidth = Math.abs(outer.x - inner.x);
 	if (eyeWidth < 0.001) return 0.5;
 
-	// Normalized position of iris between inner and outer corners (0 = inner, 1 = outer)
 	const irisPos = (iris.x - Math.min(inner.x, outer.x)) / eyeWidth;
-	// Centered around 0.5 means looking at screen
-	return Math.abs(irisPos - 0.5);
+	return Math.abs(irisPos - 0.5); // 0 = centered, 0.5 = at corner
 }
+
+function computeVerticalGaze(
+	landmarks: Landmark[],
+	irisIdx: number,
+	topIdx: number,
+	bottomIdx: number,
+): number {
+	const iris = landmarks[irisIdx];
+	const top = landmarks[topIdx];
+	const bottom = landmarks[bottomIdx];
+	if (!iris || !top || !bottom) return 0.5;
+
+	const eyeHeight = Math.abs(bottom.y - top.y);
+	if (eyeHeight < 0.001) return 0.5;
+
+	const irisPos = (iris.y - Math.min(top.y, bottom.y)) / eyeHeight;
+	return Math.abs(irisPos - 0.5); // 0 = centered, 0.5 = at edge
+}
+
+function computeHeadYaw(landmarks: Landmark[]): number {
+	const nose = landmarks[NOSE_TIP];
+	const leftEdge = landmarks[LEFT_FACE_EDGE];
+	const rightEdge = landmarks[RIGHT_FACE_EDGE];
+	if (!nose || !leftEdge || !rightEdge) return 0;
+
+	const faceWidth = Math.abs(rightEdge.x - leftEdge.x);
+	if (faceWidth < 0.001) return 0;
+
+	const faceCenterX = (leftEdge.x + rightEdge.x) / 2;
+	// How far nose deviates from face center, normalized by face width
+	return Math.abs(nose.x - faceCenterX) / (faceWidth / 2);
+}
+
+function computeHeadPitch(landmarks: Landmark[]): number {
+	const nose = landmarks[NOSE_TIP];
+	const forehead = landmarks[FOREHEAD];
+	const chin = landmarks[CHIN];
+	if (!nose || !forehead || !chin) return 0;
+
+	const faceHeight = Math.abs(chin.y - forehead.y);
+	if (faceHeight < 0.001) return 0;
+
+	const faceCenterY = (forehead.y + chin.y) / 2;
+	// Nose is naturally below center, so we compare relative offset
+	const normalNoseRatio = 0.15; // nose is ~15% below center normally
+	const noseOffset = (nose.y - faceCenterY) / faceHeight;
+	return Math.abs(noseOffset - normalNoseRatio);
+}
+
+function isLookingAtScreen(landmarks: Landmark[]): boolean {
+	// 1. Horizontal gaze (iris left/right)
+	const leftH = computeHorizontalGaze(landmarks, LEFT_IRIS_CENTER, LEFT_EYE_INNER, LEFT_EYE_OUTER);
+	const rightH = computeHorizontalGaze(landmarks, RIGHT_IRIS_CENTER, RIGHT_EYE_INNER, RIGHT_EYE_OUTER);
+	const avgHorizontal = (leftH + rightH) / 2;
+
+	// 2. Vertical gaze (iris up/down)
+	const leftV = computeVerticalGaze(landmarks, LEFT_IRIS_CENTER, LEFT_EYE_TOP, LEFT_EYE_BOTTOM);
+	const rightV = computeVerticalGaze(landmarks, RIGHT_IRIS_CENTER, RIGHT_EYE_TOP, RIGHT_EYE_BOTTOM);
+	const avgVertical = (leftV + rightV) / 2;
+
+	// 3. Head yaw (turning head left/right)
+	const headYaw = computeHeadYaw(landmarks);
+
+	// 4. Head pitch (tilting head up/down)
+	const headPitch = computeHeadPitch(landmarks);
+
+	// Any single axis failing is enough to consider "not looking"
+	if (avgHorizontal > HORIZONTAL_GAZE_THRESHOLD) return false;
+	if (avgVertical > VERTICAL_GAZE_THRESHOLD) return false;
+	if (headYaw > HEAD_YAW_THRESHOLD) return false;
+	if (headPitch > HEAD_PITCH_THRESHOLD) return false;
+
+	return true;
+}
+
+// ─── Drawing helpers ─────────────────────────────────────────────────────────
 
 function drawConnectors(
 	ctx: CanvasRenderingContext2D,
@@ -101,6 +209,8 @@ function drawLandmarkDots(
 		ctx.fill();
 	}
 }
+
+// ─── Hook ────────────────────────────────────────────────────────────────────
 
 export function useEyeContact({
 	videoRef,
@@ -161,7 +271,6 @@ export function useEyeContact({
 				ctx.clearRect(0, 0, w, h);
 
 				if (!results.multiFaceLandmarks || results.multiFaceLandmarks.length === 0) {
-					// No face detected — treat as not looking
 					handleGazeChange(false);
 					return;
 				}
@@ -179,12 +288,8 @@ export function useEyeContact({
 				// Draw iris center dots
 				drawLandmarkDots(ctx, landmarks, [LEFT_IRIS_CENTER, RIGHT_IRIS_CENTER], { color: "#ff6b6b", radius: 2.5 }, w, h);
 
-				// Compute gaze
-				const leftGaze = computeGazeRatio(landmarks, LEFT_IRIS_CENTER, LEFT_EYE_INNER, LEFT_EYE_OUTER);
-				const rightGaze = computeGazeRatio(landmarks, RIGHT_IRIS_CENTER, RIGHT_EYE_INNER, RIGHT_EYE_OUTER);
-				const avgGaze = (leftGaze + rightGaze) / 2;
-
-				const looking = avgGaze < GAZE_THRESHOLD;
+				// Combined gaze + head pose check
+				const looking = isLookingAtScreen(landmarks);
 				handleGazeChange(looking);
 			});
 
@@ -205,7 +310,6 @@ export function useEyeContact({
 
 		function handleGazeChange(looking: boolean) {
 			if (looking === lastStateRef.current) {
-				// Same state — clear any pending debounce
 				if (debounceTimerRef.current) {
 					clearTimeout(debounceTimerRef.current);
 					debounceTimerRef.current = null;
@@ -213,8 +317,7 @@ export function useEyeContact({
 				return;
 			}
 
-			// State changed — debounce before firing
-			if (debounceTimerRef.current) return; // Already debouncing
+			if (debounceTimerRef.current) return;
 
 			debounceTimerRef.current = setTimeout(() => {
 				lastStateRef.current = looking;
