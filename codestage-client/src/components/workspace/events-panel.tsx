@@ -97,11 +97,13 @@ const getEventStyle = (type: AssessmentEventType) => {
 			border: "border-red-500/20",
 		},
 	};
-	return styles[type] ?? {
-		bg: "bg-gray-500/10",
-		text: "text-gray-400",
-		border: "border-gray-500/20",
-	};
+	return (
+		styles[type] ?? {
+			bg: "bg-gray-500/10",
+			text: "text-gray-400",
+			border: "border-gray-500/20",
+		}
+	);
 };
 
 const getEventLabel = (type: AssessmentEventType) => {

@@ -120,8 +120,8 @@ export const InvalidTokenPage = ({ message, title }: InvalidTokenPageProps) => {
 			The authentication token provided is either{" "}
 			<span className="text-zinc-300">missing</span>,{" "}
 			<span className="text-zinc-300">expired</span>, or{" "}
-			<span className="text-zinc-300">invalid</span>. Please request a new
-			link to continue.
+			<span className="text-zinc-300">invalid</span>. Please request a new link
+			to continue.
 		</>
 	);
 

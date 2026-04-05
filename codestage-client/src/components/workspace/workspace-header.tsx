@@ -18,7 +18,10 @@ interface WorkspaceHeaderProps {
 	onEndSession: () => void;
 }
 
-export function WorkspaceHeader({ isAdmin, onEndSession }: WorkspaceHeaderProps) {
+export function WorkspaceHeader({
+	isAdmin,
+	onEndSession,
+}: WorkspaceHeaderProps) {
 	const [showConfirmDialog, setShowConfirmDialog] = useState(false);
 
 	const handleEndSessionClick = () => {
@@ -66,44 +69,44 @@ export function WorkspaceHeader({ isAdmin, onEndSession }: WorkspaceHeaderProps)
 				</DialogContent>
 			</Dialog>
 
-		<header className="relative z-20 flex h-14 items-center justify-between border-b border-white/[0.06] bg-[#0d0d14]/80 px-4 backdrop-blur-xl">
-			<div className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-violet-500/20 to-transparent" />
+			<header className="relative z-20 flex h-14 items-center justify-between border-b border-white/[0.06] bg-[#0d0d14]/80 px-4 backdrop-blur-xl">
+				<div className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-violet-500/20 to-transparent" />
 
-			<div className="flex items-center gap-4">
-				<div className="flex items-center gap-2.5">
-					<div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 shadow-lg shadow-violet-500/25">
-						<Code2 className="h-4.5 w-4.5 text-white" />
+				<div className="flex items-center gap-4">
+					<div className="flex items-center gap-2.5">
+						<div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 shadow-lg shadow-violet-500/25">
+							<Code2 className="h-4.5 w-4.5 text-white" />
+						</div>
+						<span className="text-lg font-semibold text-white">CodeStage</span>
 					</div>
-					<span className="text-lg font-semibold text-white">CodeStage</span>
+
+					<div className="h-6 w-px bg-white/[0.08]" />
+
+					<div className="flex items-center gap-3">
+						{isAdmin && (
+							<Badge
+								variant="outline"
+								className="gap-1.5 border-amber-500/25 bg-amber-500/10 text-amber-400"
+							>
+								<Crown className="h-3 w-3" />
+								Admin
+							</Badge>
+						)}
+					</div>
 				</div>
 
-				<div className="h-6 w-px bg-white/[0.08]" />
-
-				<div className="flex items-center gap-3">
-					{isAdmin && (
-						<Badge
-							variant="outline"
-							className="gap-1.5 border-amber-500/25 bg-amber-500/10 text-amber-400"
-						>
-							<Crown className="h-3 w-3" />
-							Admin
-						</Badge>
-					)}
+				<div className="flex items-center gap-2">
+					<Button
+						variant="ghost"
+						size="sm"
+						onClick={handleEndSessionClick}
+						className="gap-2 rounded-lg text-red-400 hover:bg-red-500/10 hover:text-red-300"
+					>
+						<LogOut className="h-4 w-4" />
+						{isAdmin ? "End Session" : "Leave"}
+					</Button>
 				</div>
-			</div>
-
-			<div className="flex items-center gap-2">
-				<Button
-					variant="ghost"
-					size="sm"
-					onClick={handleEndSessionClick}
-					className="gap-2 rounded-lg text-red-400 hover:bg-red-500/10 hover:text-red-300"
-				>
-					<LogOut className="h-4 w-4" />
-					{isAdmin ? "End Session" : "Leave"}
-				</Button>
-			</div>
-		</header>
+			</header>
 		</>
 	);
 }

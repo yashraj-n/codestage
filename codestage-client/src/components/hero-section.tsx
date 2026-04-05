@@ -1,9 +1,9 @@
 "use client";
 
+import { useRouter } from "@tanstack/react-router";
 import { ArrowRight, Play } from "lucide-react";
 import { useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { useRouter } from "@tanstack/react-router";
 
 export function HeroSection() {
 	const spotlightRef = useRef<HTMLDivElement>(null);
@@ -22,7 +22,7 @@ export function HeroSection() {
 		return () => window.removeEventListener("mousemove", handleMouseMove);
 	}, []);
 
-    const router = useRouter();
+	const router = useRouter();
 
 	return (
 		<section
@@ -78,7 +78,7 @@ export function HeroSection() {
 					<Button
 						size="lg"
 						className="group h-12 bg-foreground px-8 text-background hover:bg-foreground/90"
-                        onClick={() => router.navigate({ to: "/admin" })}
+						onClick={() => router.navigate({ to: "/admin" })}
 					>
 						Start a Session
 						<ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
@@ -87,7 +87,9 @@ export function HeroSection() {
 						size="lg"
 						variant="outline"
 						className="h-12 border-border/60 bgatransparent px-8 backdrop-blur-sm hover:bg-secondary/50"
-                        onClick={() => window.open("https://youtu.be/dcWqru1yc9w", "_blank")}
+						onClick={() =>
+							window.open("https://youtu.be/dcWqru1yc9w", "_blank")
+						}
 					>
 						<Play className="mr-2 h-4 w-4" />
 						Watch Demo

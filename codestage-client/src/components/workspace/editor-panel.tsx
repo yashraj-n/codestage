@@ -300,7 +300,7 @@ export function EditorPanel({
 			// Check if the editor or its container is focused
 			const domNode = editor.getDomNode();
 			if (!domNode?.contains(document.activeElement)) return;
-			
+
 			const text = e.clipboardData?.getData("text") || "";
 			if (text.length > 0) {
 				onPaste?.(text);
