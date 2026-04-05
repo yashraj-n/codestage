@@ -29,11 +29,6 @@ import { EventsPanel } from "./events-panel";
 import { NotesPanel } from "./notes-panel";
 import { TerminalPanel } from "./terminal-panel";
 import { WorkspaceHeader } from "./workspace-header";
-import { CameraFeed } from "./camera-feed";
-import { CameraPermissionGate } from "./camera-permission-gate";
-import { useCamera } from "@/hooks/use-camera";
-import { useWebRTC } from "@/hooks/use-webrtc";
-import { useGazeTracker } from "@/hooks/use-gaze-tracker";
 
 const SMOOTH_FACTOR = 0.5;
 const SEND_THROTTLE = 20;
@@ -126,9 +121,6 @@ console.log(solution([1, 2, 3]));`);
 	const [remoteCaretPos, setRemoteCaretPos] = useState({ lineNumber: 1, column: 1 });
 	const [sessionEnded, setSessionEnded] = useState(false);
 
-	const { status: cameraStatus, stream: localStream, requestCamera } = useCamera();
-	const { remoteStream } = useWebRTC(stompClient, user.sessionId ?? "", user.isAdmin ?? false, localStream);
-
 	const [remoteCursorPos, setRemoteCursorPos] = useState(INITIAL_CURSOR_POS);
 	const cursorRefs = {
 		current: useRef(INITIAL_CURSOR_POS),
@@ -167,12 +159,6 @@ console.log(solution([1, 2, 3]));`);
 		},
 		[user.isAdmin, user.sessionId, stompClient],
 	);
-
-	const handleGazeAway = useCallback(() => {
-		addEvent("GAZE_AWAY", "Candidate looked away from screen");
-	}, [addEvent]);
-
-	useGazeTracker(handleGazeAway, !user.isAdmin);
 
 	useEffect(() => {
 		const subscriptions: Array<{ unsubscribe: () => void }> = [];
@@ -504,14 +490,6 @@ console.log(solution([1, 2, 3]));`);
 		}
 	}, [code, notes, stompClient, user.sessionId]);
 
-	if (!user.isAdmin && cameraStatus !== "granted") {
-		return (
-			<CameraPermissionGate status={cameraStatus} onRetry={requestCamera}>
-				{null}
-			</CameraPermissionGate>
-		);
-	}
-
 	return (
 		<>
 			<Dialog open={sessionEnded}>
@@ -644,27 +622,12 @@ console.log(solution([1, 2, 3]));`);
 								</PanelResizeHandle>
 
 								<Panel defaultSize={15} minSize={12} maxSize={25}>
-									<div className="flex h-full flex-col gap-3">
-										{remoteStream && (
-											<div className="h-40 shrink-0">
-												<CameraFeed stream={remoteStream} label="Candidate" />
-											</div>
-										)}
-										<div className="flex-1 min-h-0">
-											<EventsPanel events={events} isAdmin={user.isAdmin} />
-										</div>
-									</div>
+									<EventsPanel events={events} isAdmin={user.isAdmin} />
 								</Panel>
 							</>
 						)}
 					</PanelGroup>
 				</div>
-
-				{!user.isAdmin && localStream && (
-					<div className="fixed bottom-4 right-4 z-50 h-32 w-44">
-						<CameraFeed stream={localStream} muted label="You" />
-					</div>
-				)}
 			</div>
 		</>
 	);

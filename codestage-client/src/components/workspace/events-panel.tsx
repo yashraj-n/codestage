@@ -31,7 +31,6 @@ const getEventIcon = (type: AssessmentEventType) => {
 		CODE_RUN: <Play className="h-3 w-3" />,
 		CODE_CHANGE: <Activity className="h-3 w-3" />,
 		EXECUTE_CODE: <Play className="h-3 w-3" />,
-		GAZE_AWAY: <EyeOff className="h-3 w-3" />,
 	};
 	return icons[type] ?? <Activity className="h-3 w-3" />;
 };
@@ -91,11 +90,6 @@ const getEventStyle = (type: AssessmentEventType) => {
 			text: "text-green-400",
 			border: "border-green-500/20",
 		},
-		GAZE_AWAY: {
-			bg: "bg-red-500/10",
-			text: "text-red-400",
-			border: "border-red-500/20",
-		},
 	};
 	return styles[type] ?? {
 		bg: "bg-gray-500/10",
@@ -116,7 +110,6 @@ const getEventLabel = (type: AssessmentEventType) => {
 		CODE_RUN: "Code Run",
 		CODE_CHANGE: "Code Change",
 		EXECUTE_CODE: "Execute Code",
-		GAZE_AWAY: "Gaze Away",
 	};
 	return labels[type] ?? type;
 };
