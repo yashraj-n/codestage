@@ -31,6 +31,8 @@ const getEventIcon = (type: AssessmentEventType) => {
 		CODE_RUN: <Play className="h-3 w-3" />,
 		CODE_CHANGE: <Activity className="h-3 w-3" />,
 		EXECUTE_CODE: <Play className="h-3 w-3" />,
+		EYE_CONTACT_LOST: <EyeOff className="h-3 w-3" />,
+		EYE_CONTACT_GAINED: <Eye className="h-3 w-3" />,
 	};
 	return icons[type] ?? <Activity className="h-3 w-3" />;
 };
@@ -90,6 +92,16 @@ const getEventStyle = (type: AssessmentEventType) => {
 			text: "text-green-400",
 			border: "border-green-500/20",
 		},
+		EYE_CONTACT_LOST: {
+			bg: "bg-red-500/10",
+			text: "text-red-400",
+			border: "border-red-500/20",
+		},
+		EYE_CONTACT_GAINED: {
+			bg: "bg-emerald-500/10",
+			text: "text-emerald-400",
+			border: "border-emerald-500/20",
+		},
 	};
 	return styles[type] ?? {
 		bg: "bg-gray-500/10",
@@ -110,6 +122,8 @@ const getEventLabel = (type: AssessmentEventType) => {
 		CODE_RUN: "Code Run",
 		CODE_CHANGE: "Code Change",
 		EXECUTE_CODE: "Execute Code",
+		EYE_CONTACT_LOST: "Eye Contact Lost",
+		EYE_CONTACT_GAINED: "Eye Contact Gained",
 	};
 	return labels[type] ?? type;
 };

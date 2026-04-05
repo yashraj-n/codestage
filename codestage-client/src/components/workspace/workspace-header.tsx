@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertTriangle, Code2, Crown, LogOut } from "lucide-react";
+import { AlertTriangle, Code2, Crown, Eye, EyeOff, LogOut } from "lucide-react";
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -16,9 +16,10 @@ import {
 interface WorkspaceHeaderProps {
 	isAdmin: boolean;
 	onEndSession: () => void;
+	eyeContactStatus?: "looking" | "not-looking" | "unknown";
 }
 
-export function WorkspaceHeader({ isAdmin, onEndSession }: WorkspaceHeaderProps) {
+export function WorkspaceHeader({ isAdmin, onEndSession, eyeContactStatus = "unknown" }: WorkspaceHeaderProps) {
 	const [showConfirmDialog, setShowConfirmDialog] = useState(false);
 
 	const handleEndSessionClick = () => {
@@ -87,6 +88,23 @@ export function WorkspaceHeader({ isAdmin, onEndSession }: WorkspaceHeaderProps)
 						>
 							<Crown className="h-3 w-3" />
 							Admin
+						</Badge>
+					)}
+					{isAdmin && eyeContactStatus !== "unknown" && (
+						<Badge
+							variant="outline"
+							className={`gap-1.5 transition-colors ${
+								eyeContactStatus === "looking"
+									? "border-emerald-500/25 bg-emerald-500/10 text-emerald-400"
+									: "border-red-500/25 bg-red-500/10 text-red-400"
+							}`}
+						>
+							{eyeContactStatus === "looking" ? (
+								<Eye className="h-3 w-3" />
+							) : (
+								<EyeOff className="h-3 w-3" />
+							)}
+							{eyeContactStatus === "looking" ? "Looking" : "Not Looking"}
 						</Badge>
 					)}
 				</div>

@@ -86,5 +86,23 @@ public class WebSocketMessageController {
         return message;
     }
 
+    @MessageMapping("/{sessionId}/webrtc-offer")
+    @SendTo("/topic/{sessionId}/webrtc-offer")
+    public String webrtcOffer(@Payload String message) {
+        return message;
+    }
+
+    @MessageMapping("/{sessionId}/webrtc-answer")
+    @SendTo("/topic/{sessionId}/webrtc-answer")
+    public String webrtcAnswer(@Payload String message) {
+        return message;
+    }
+
+    @MessageMapping("/{sessionId}/webrtc-ice")
+    @SendTo("/topic/{sessionId}/webrtc-ice")
+    public String webrtcIce(@Payload String message) {
+        return message;
+    }
+
 
 }

@@ -24,6 +24,7 @@ import type {
 	RemoteCursorProps,
 	WorkspaceLayoutProps,
 } from "@/types/workspace";
+import { CameraPanel } from "./camera-panel";
 import { EditorPanel } from "./editor-panel";
 import { EventsPanel } from "./events-panel";
 import { NotesPanel } from "./notes-panel";
@@ -120,6 +121,7 @@ console.log(solution([1, 2, 3]));`);
 	const [isRunning, setIsRunning] = useState(false);
 	const [remoteCaretPos, setRemoteCaretPos] = useState({ lineNumber: 1, column: 1 });
 	const [sessionEnded, setSessionEnded] = useState(false);
+	const [eyeContactStatus, setEyeContactStatus] = useState<"looking" | "not-looking" | "unknown">("unknown");
 
 	const [remoteCursorPos, setRemoteCursorPos] = useState(INITIAL_CURSOR_POS);
 	const cursorRefs = {
@@ -490,6 +492,16 @@ console.log(solution([1, 2, 3]));`);
 		}
 	}, [code, notes, stompClient, user.sessionId]);
 
+	const handleEyeContactChange = useCallback(
+		(looking: boolean) => {
+			setEyeContactStatus(looking ? "looking" : "not-looking");
+			if (!user.isAdmin) {
+				addEvent(looking ? "EYE_CONTACT_GAINED" : "EYE_CONTACT_LOST");
+			}
+		},
+		[addEvent, user.isAdmin],
+	);
+
 	return (
 		<>
 			<Dialog open={sessionEnded}>
@@ -563,7 +575,7 @@ console.log(solution([1, 2, 3]));`);
 
 				<div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.01)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.01)_1px,transparent_1px)] bg-size-[64px_64px] mask-[radial-gradient(ellipse_at_center,black_30%,transparent_80%)]" />
 
-				<WorkspaceHeader isAdmin={user.isAdmin ?? false} onEndSession={handleEndSession} />
+				<WorkspaceHeader isAdmin={user.isAdmin ?? false} onEndSession={handleEndSession} eyeContactStatus={eyeContactStatus} />
 
 				<div className="relative z-10 flex-1 overflow-hidden p-3">
 					<PanelGroup direction="horizontal" className="h-full gap-3">
@@ -627,6 +639,16 @@ console.log(solution([1, 2, 3]));`);
 							</>
 						)}
 					</PanelGroup>
+				</div>
+
+				{/* Camera Panel — floating overlay */}
+				<div className="absolute bottom-4 right-4 z-30 w-48">
+					<CameraPanel
+						isAdmin={user.isAdmin ?? false}
+						stompClient={stompClient}
+						sessionId={user.sessionId ?? ""}
+						onEyeContactChange={!user.isAdmin ? handleEyeContactChange : undefined}
+					/>
 				</div>
 			</div>
 		</>
